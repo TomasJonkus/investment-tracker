@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broke Investor – Portfolio Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Lora:wght@400;600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #faf9f6;
+    --surface:   #ffffff;
+    --surface2:  #f3f1ec;
+    --border:    #e2ddd6;
+    --border2:   #cdc8bf;
+    --text:      #1a1814;
+    --text2:     #6b6660;
+    --text3:     #9e9890;
+    --accent:    #2d6a4f;
+    --accent2:   #1b4332;
+    --gold:      #b5843a;
+    --gold-bg:   #fdf3e0;
+    --red:       #c0392b;
+    --red-bg:    #fdecea;
+    --radius:    8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 2rem 1rem;
+  }
+
+  .tracker { max-width: 880px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-title {
+    font-family: 'Lora', serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .header-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .live-dot {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--accent); font-weight: 500;
+  }
+  .live-dot::before {
+    content: ''; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .as-of { font-size: 11px; color: var(--text3); }
+  .rbtn {
+    font-size: 11px; padding: 4px 10px;
+    border: 1px solid var(--border2); border-radius: 20px;
+    background: var(--surface); color: var(--text2); cursor: pointer; transition: all 0.15s;
+  }
+  .rbtn:hover { background: var(--surface2); color: var(--text); }
+  .rbtn:disabled { opacity: 0.5; cursor: default; }
+
+  /* Editor mode */
+  .editor-bar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 1rem; flex-wrap: wrap;
+  }
+  .editor-badge {
+    font-size: 10px; padding: 3px 8px; border-radius: 20px;
+    background: var(--gold-bg); color: var(--gold);
+    font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .editor-hint { font-size: 11px; color: var(--text3); }
+  .lock-btn {
+    font-size: 11px; padding: 3px 10px; margin-left: auto;
+    border: 1px solid var(--border); border-radius: 20px;
+    background: transparent; color: var(--text2); cursor: pointer;
+  }
+  .lock-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+
+  /* Login modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; backdrop-filter: blur(2px);
+  }
+  .modal {
+    background: var(--surface); border-radius: var(--radius-lg);
+    padding: 1.75rem; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  .modal h3 { font-family: 'Lora', serif; font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .modal p { font-size: 12px; color: var(--text2); margin-bottom: 1rem; }
+  .modal input {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: 13px; margin-bottom: 10px;
+    font-family: 'DM Mono', monospace; background: var(--bg); color: var(--text);
+  }
+  .modal input:focus { outline: none; border-color: var(--accent); }
+  .modal-err { font-size: 12px; color: var(--red); margin-bottom: 8px; min-height: 16px; }
+  .modal-actions { display: flex; gap: 8px; }
+  .modal-submit {
+    flex: 1; padding: 8px; background: var(--accent); color: #fff;
+    border: none; border-radius: 20px; font-size: 13px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: background 0.15s;
+  }
+  .modal-submit:hover { background: var(--accent2); }
+  .modal-cancel {
+    padding: 8px 14px; background: none; color: var(--text2);
+    border: 1px solid var(--border); border-radius: 20px;
+    font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+
+  /* FX row */
+  .fx-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 1.5rem; font-size: 12px; color: var(--text2); flex-wrap: wrap;
+  }
+  .fx-row input {
+    width: 84px; font-size: 12px; padding: 4px 8px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--surface); color: var(--text);
+    font-family: 'DM Mono', monospace;
+  }
+  .fx-row input:focus { outline: none; border-color: var(--accent); }
+
+  /* Metrics */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.1rem; }
+  .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .metric-value { font-family: 'DM Mono', monospace; font-size: 1.25rem; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .metric.accent-card { background: var(--accent); border-color: var(--accent2); }
+  .metric.accent-card .metric-label { color: rgba(255,255,255,0.65); }
+  .metric.accent-card .metric-value { color: #fff; }
+  .metric.accent-card .metric-sub   { color: rgba(255,255,255,0.55); }
+
+  /* Allocation bar */
+  .alloc-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; gap: 2px; margin-bottom: 1.75rem; }
+  .alloc-seg { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+
+  /* Section */
+  .section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; }
+  .section-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+
+  /* Table */
+  .tbl-wrap { overflow-x: auto; margin-bottom: 1.5rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    font-size: 10px; font-weight: 500; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    text-align: left; padding: 6px 10px;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  tbody td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface2); }
+  .r { text-align: right; }
+  .c { text-align: center; }
+
+  .ticker { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; }
+  .co-name { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .ccy-tag {
+    display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px;
+    background: var(--surface2); color: var(--text3); margin-left: 4px;
+    font-family: 'DM Mono', monospace; vertical-align: middle;
+  }
+  .yield-pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace; }
+  .yl { background: #e8f5e9; color: #2e7d32; }
+  .ym { background: var(--gold-bg); color: var(--gold); }
+  .yh { background: var(--red-bg); color: var(--red); }
+
+  .val-primary { font-family: 'DM Mono', monospace; font-size: 12px; }
+  .val-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+  /* Inline edit */
+  .editable { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+  .edit-icon { cursor: pointer; color: var(--text3); font-size: 11px; opacity: 0; transition: opacity 0.15s; user-select: none; padding: 2px; }
+  tr:hover .edit-icon { opacity: 0.6; }
+  .edit-icon:hover { opacity: 1 !important; color: var(--accent); }
+  .edit-input {
+    font-family: 'DM Mono', monospace; font-size: 12px; width: 80px;
+    padding: 3px 6px; border: 1px solid var(--accent);
+    border-radius: 4px; background: var(--surface); color: var(--text); outline: none;
+  }
+
+  /* Remove btn */
+  .rm-btn {
+    background: none; border: none; cursor: pointer; color: var(--text3);
+    font-size: 16px; padding: 2px 4px; border-radius: 4px; transition: all 0.15s; line-height: 1;
+  }
+  .rm-btn:hover { color: var(--red); background: var(--red-bg); }
+
+  /* Action buttons */
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.25rem; }
+  .add-btn {
+    font-size: 12px; padding: 7px 16px; border: 1px solid var(--border2);
+    border-radius: 20px; background: var(--surface); color: var(--text2);
+    cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .add-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* Add form */
+  .add-form {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.25rem; margin-top: 1rem;
+  }
+  .add-form h3 { font-family: 'Lora', serif; font-size: 0.95rem; margin-bottom: 1rem; color: var(--text); }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin-bottom: 1rem; }
+  .form-field label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 4px; }
+  .form-field input, .form-field select {
+    width: 100%; padding: 6px 9px; border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: 13px; font-family: 'DM Sans', sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  .form-field input:focus, .form-field select:focus { outline: none; border-color: var(--accent); }
+  .form-actions { display: flex; gap: 8px; }
+  .form-submit {
+    padding: 7px 18px; background: var(--accent); color: #fff; border: none;
+    border-radius: 20px; font-size: 12px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: background 0.15s;
+  }
+  .form-submit:hover { background: var(--accent2); }
+  .form-cancel {
+    padding: 7px 14px; background: none; color: var(--text2);
+    border: 1px solid var(--border); border-radius: 20px;
+    font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  }
+
+  /* Save indicator */
+  .save-status { font-size: 11px; color: var(--text3); margin-left: auto; }
+  .save-status.saving { color: var(--gold); }
+  .save-status.saved  { color: var(--accent); }
+  .save-status.error  { color: var(--red); }
+
+  .note {
+    font-size: 11px; color: var(--text3); margin-top: 1.5rem;
+    padding-top: 1rem; border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 1rem 0.5rem; }
+    .metric-value { font-size: 1.05rem; }
+    thead th:nth-child(2), tbody td:nth-child(2) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="tracker">
+
+  <div class="header">
+    <div class="header-title">My Investment Portfolio</div>
+    <div class="header-meta">
+      <span class="live-dot">live prices</span>
+      <span class="as-of" id="asOf">loading…</span>
+      <button class="rbtn" id="refreshBtn" onclick="refreshPrices()">↻ Refresh</button>
+      <button class="rbtn" id="editorBtn" onclick="showLogin()" style="border-color:var(--gold);color:var(--gold)">🔒 Editor</button>
+    </div>
+  </div>
+
+  <div id="editorBar" style="display:none" class="editor-bar">
+    <span class="editor-badge">✏ Editor mode</span>
+    <span class="editor-hint">Changes save automatically</span>
+    <span class="save-status" id="saveStatus"></span>
+    <button class="lock-btn" onclick="lockEditor()">Lock</button>
+  </div>
+
+  <div class="fx-row">
+    <span>EUR/USD:</span>
+    <input type="number" id="fxInput" value="1.1707" step="0.0001" min="0.5" max="2" oninput="onFxChange(this.value)" />
+    <span style="color:var(--text3)">· all totals in USD</span>
+  </div>
+
+  <div class="metrics" id="metrics"></div>
+  <div class="alloc-bar" id="allocBar"></div>
+  <div id="stockSection"></div>
+  <div id="bondSection"></div>
+  <div class="actions" id="actions" style="display:none">
+    <button class="add-btn" onclick="showForm('stock')">+ Add stock</button>
+    <button class="add-btn" onclick="showForm('bond')">+ Add bond</button>
+  </div>
+  <div id="addForm"></div>
+
+  <!-- Login modal -->
+  <div class="modal-overlay" id="loginModal" style="display:none" onclick="if(event.target===this)hideLogin()">
+    <div class="modal">
+      <h3>Editor login</h3>
+      <p>Enter your editor password to add or modify holdings.</p>
+      <input type="password" id="pwInput" placeholder="Password"
+        onkeydown="if(event.key==='Enter')submitLogin()" />
+      <div class="modal-err" id="loginErr"></div>
+      <div class="modal-actions">
+        <button class="modal-submit" onclick="submitLogin()">Unlock</button>
+        <button class="modal-cancel" onclick="hideLogin()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">USD stock prices and EUR/USD rate refresh via Alpha Vantage. Nasdaq Baltic prices (TEL1L, IGN1L) update manually — click ✏ in editor mode. Net income shown after 15% withholding tax on dividends.</p>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const WORKER_URL = 'https://portfolio-worker.tomas-jonkus.workers.dev';
+// No EDITOR_KEY here at all
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let eurUsd    = 1.1707;
+let asOf      = '—';
+let isEditor  = false;
+let editing   = null;
+let saveTimer = null;
+
+let stocks = [
+  { ticker:'TGT',   name:'Target Corp',          shares:5,       price:130.18, div:4.56, wht:0.15, ccy:'USD' },
+  { ticker:'WPC',   name:'W.P. Carey',            shares:11,      price:69.25,  div:3.72, wht:0.15, ccy:'USD' },
+  { ticker:'BMY',   name:'Bristol-Myers Squibb',  shares:12,      price:59.79,  div:2.52, wht:0.15, ccy:'USD' },
+  { ticker:'COF',   name:'Capital One Financial', shares:11.2112, price:196.61, div:3.20, wht:0.15, ccy:'USD' },
+  { ticker:'TEL1L', name:'Telia Lietuva',          shares:360,     price:2.26,   div:0.14, wht:0.15, ccy:'EUR' },
+  { ticker:'IGN1L', name:'Ignitis Grupe',          shares:53,      price:21.65,  div:1.37, wht:0.15, ccy:'EUR' },
+];
+let bonds = [
+  { name:'Eleving', faceValue:200, coupon:0.13, maturity:'Oct 2028', ccy:'EUR' },
+];
+
+const STOCK_COLORS = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400','#1b7a4a','#0d5c7a'];
+const BOND_COLORS  = ['#7b5ea7','#9b8ec4','#4a3f6b'];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const toUsd  = (n, ccy) => ccy === 'EUR' ? n * eurUsd : n;
+const netDiv = h => h.div * (1 - h.wht);
+const f      = (n, d=2) => Number(n).toFixed(d);
+const fK     = n => n >= 1000 ? '$' + f(n/1000,1) + 'k' : '$' + f(n,2);
+const sym    = ccy => ccy === 'EUR' ? '€' : '$';
+const yc     = y => y < 3 ? 'yl' : y < 5 ? 'ym' : 'yh';
+const nowStr = () => {
+  const d = new Date();
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+       + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+};
+
+// ── PERSISTENCE ───────────────────────────────────────────────────────────────
+async function loadPortfolio() {
+  try {
+    const res = await fetch(`${WORKER_URL}/portfolio`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.stocks && data.stocks.length) stocks = data.stocks;
+    if (data.bonds  && data.bonds.length)  bonds  = data.bonds;
+    if (data.eurUsd) {
+      eurUsd = data.eurUsd;
+      document.getElementById('fxInput').value = f(eurUsd, 4);
+    }
+    if (data.asOf) {
+      asOf = data.asOf;
+      document.getElementById('asOf').textContent = asOf;
+    }
+    render();
+  } catch(e) { console.warn('Could not load portfolio from worker:', e); }
+}
+
+function scheduleSave() {
+  if (!isEditor) return;
+  setSaveStatus('saving', 'Saving…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(savePortfolio, 1200);
+}
+
+async function savePortfolio() {
+  try {
+    const payload = JSON.stringify({ stocks, bonds, eurUsd, asOf });
+    const res = await fetch(`${WORKER_URL}/portfolio`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Editor-Key': window._ek },
+      body: payload
+    });
+    if (res.ok) {
+      setSaveStatus('saved', 'Saved ✓');
+      setTimeout(() => setSaveStatus('', ''), 2500);
+    } else {
+      setSaveStatus('error', 'Save failed');
+    }
+  } catch(e) {
+    setSaveStatus('error', 'Save failed');
+  }
+}
+
+function setSaveStatus(cls, msg) {
+  const el = document.getElementById('saveStatus');
+  if (!el) return;
+  el.className = 'save-status ' + cls;
+  el.textContent = msg;
+}
+
+// ── REFRESH ───────────────────────────────────────────────────────────────────
+async function refreshPrices() {
+  const btn = document.getElementById('refreshBtn');
+  btn.textContent = 'Refreshing…';
+  btn.disabled = true;
+  try {
+    const usdTickers = stocks.filter(s => s.ccy === 'USD').map(s => s.ticker);
+    const res = await fetch(`${WORKER_URL}/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tickers: usdTickers })
+    });
+    const data = await res.json();
+    usdTickers.forEach(t => {
+      if (data[t]) { const s = stocks.find(x => x.ticker === t); if (s) s.price = data[t]; }
+    });
+    if (data.EURUSD) {
+      eurUsd = data.EURUSD;
+      document.getElementById('fxInput').value = f(eurUsd, 4);
+    }
+    asOf = nowStr();
+    if (isEditor) scheduleSave();
+  } catch(e) { console.error('Refresh failed:', e); }
+  btn.textContent = '↻ Refresh';
+  btn.disabled = false;
+  render();
+}
+
+// ── EDITOR AUTH ───────────────────────────────────────────────────────────────
+function showLogin() { document.getElementById('loginModal').style.display = 'flex'; document.getElementById('pwInput').focus(); }
+function hideLogin() { document.getElementById('loginModal').style.display = 'none'; document.getElementById('loginErr').textContent = ''; document.getElementById('pwInput').value = ''; }
+
+async function submitLogin() {
+  const pw = document.getElementById('pwInput').value;
+  try {
+    const res = await fetch(`${WORKER_URL}/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: pw })
+    });
+    if (res.ok) {
+      isEditor = true;
+      // store the entered password in memory only (gone on page refresh)
+      window._ek = pw;
+      hideLogin();
+      document.getElementById('editorBar').style.display = 'flex';
+      document.getElementById('editorBtn').style.display = 'none';
+      document.getElementById('actions').style.display = 'flex';
+      render();
+    } else {
+      document.getElementById('loginErr').textContent = 'Incorrect password.';
+    }
+  } catch(e) {
+    document.getElementById('loginErr').textContent = 'Connection error.';
+  }
+}
+
+function lockEditor() {
+  isEditor = false;
+  editing = null;
+  document.getElementById('editorBar').style.display = 'none';
+  document.getElementById('editorBtn').style.display = '';
+  document.getElementById('actions').style.display = 'none';
+  document.getElementById('addForm').innerHTML = '';
+  render();
+}
+
+// ── INLINE EDIT ───────────────────────────────────────────────────────────────
+function startEdit(type, idx, field, val) {
+  if (!isEditor) return;
+  editing = { type, idx, field };
+  render();
+  const inp = document.getElementById('ei');
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function commitEdit(val) {
+  if (!editing) return;
+  const v = parseFloat(val);
+  if (!isNaN(v) && v >= 0) {
+    if (editing.type === 'stock') stocks[editing.idx][editing.field] = v;
+    else bonds[editing.idx][editing.field] = v;
+    scheduleSave();
+  }
+  editing = null;
+  render();
+}
+
+function cancelEdit() { editing = null; render(); }
+
+function editableCell(type, idx, field, rawVal, display) {
+  const isActive = editing && editing.type === type && editing.idx === idx && editing.field === field;
+  if (isActive) {
+    return `<input id="ei" class="edit-input" type="number" value="${rawVal}" step="any"
+      onblur="commitEdit(this.value)"
+      onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')cancelEdit();" />`;
+  }
+  const pencil = isEditor
+    ? `<span class="edit-icon" onclick="startEdit('${type}',${idx},'${field}',${rawVal})" title="Edit">✏</span>`
+    : '';
+  return `<span class="editable"><span class="val-primary">${display}</span>${pencil}</span>`;
+}
+
+// ── ADD FORM ──────────────────────────────────────────────────────────────────
+function showForm(type) {
+  const el = document.getElementById('addForm');
+  if (type === 'stock') {
+    el.innerHTML = `
+      <div class="add-form">
+        <h3>Add stock position</h3>
+        <div class="form-grid">
+          <div class="form-field"><label>Ticker</label><input id="f-ticker" placeholder="e.g. AAPL" /></div>
+          <div class="form-field"><label>Company name</label><input id="f-name" placeholder="e.g. Apple Inc." /></div>
+          <div class="form-field"><label>Shares</label><input id="f-shares" type="number" step="any" placeholder="0" /></div>
+          <div class="form-field"><label>Price</label><input id="f-price" type="number" step="any" placeholder="0.00" /></div>
+          <div class="form-field"><label>Annual div/share</label><input id="f-div" type="number" step="any" placeholder="0.00" /></div>
+          <div class="form-field"><label>Currency</label>
+            <select id="f-ccy"><option value="USD">USD</option><option value="EUR">EUR</option></select>
+          </div>
+          <div class="form-field"><label>Withholding tax %</label><input id="f-wht" type="number" step="1" value="15" /></div>
+        </div>
+        <div class="form-actions">
+          <button class="form-submit" onclick="submitStock()">Add to portfolio</button>
+          <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
+        </div>
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="add-form">
+        <h3>Add bond</h3>
+        <div class="form-grid">
+          <div class="form-field"><label>Name / Issuer</label><input id="f-bname" placeholder="e.g. Eleving" /></div>
+          <div class="form-field"><label>Face value</label><input id="f-fv" type="number" step="any" placeholder="0" /></div>
+          <div class="form-field"><label>Coupon %</label><input id="f-coupon" type="number" step="0.1" placeholder="0.0" /></div>
+          <div class="form-field"><label>Maturity</label><input id="f-mat" placeholder="e.g. Oct 2028" /></div>
+          <div class="form-field"><label>Currency</label>
+            <select id="f-bccy"><option value="EUR">EUR</option><option value="USD">USD</option></select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="form-submit" onclick="submitBond()">Add to portfolio</button>
+          <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
+        </div>
+      </div>`;
+  }
+}
+
+function submitStock() {
+  const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
+  const name   = document.getElementById('f-name').value.trim();
+  const shares = parseFloat(document.getElementById('f-shares').value);
+  const price  = parseFloat(document.getElementById('f-price').value);
+  const div    = parseFloat(document.getElementById('f-div').value);
+  const ccy    = document.getElementById('f-ccy').value;
+  const wht    = parseFloat(document.getElementById('f-wht').value) / 100;
+  if (!ticker || isNaN(shares) || isNaN(div)) { alert('Please fill in ticker, shares and dividend.'); return; }
+  stocks.push({ ticker, name: name||ticker, shares, price: isNaN(price)?0:price, div, wht: isNaN(wht)?0.15:wht, ccy });
+  document.getElementById('addForm').innerHTML = '';
+  scheduleSave();
+  render();
+}
+
+function submitBond() {
+  const name      = document.getElementById('f-bname').value.trim();
+  const faceValue = parseFloat(document.getElementById('f-fv').value);
+  const coupon    = parseFloat(document.getElementById('f-coupon').value) / 100;
+  const maturity  = document.getElementById('f-mat').value.trim();
+  const ccy       = document.getElementById('f-bccy').value;
+  if (!name || isNaN(faceValue) || isNaN(coupon)) { alert('Please fill in name, face value and coupon.'); return; }
+  bonds.push({ name, faceValue, coupon, maturity, ccy });
+  document.getElementById('addForm').innerHTML = '';
+  scheduleSave();
+  render();
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  const svU = stocks.reduce((s,h) => s + toUsd(h.shares * h.price, h.ccy), 0);
+  const bvU = bonds.reduce((s,b)  => s + toUsd(b.faceValue, b.ccy), 0);
+  const tvU = svU + bvU;
+  const siU = stocks.reduce((s,h) => s + toUsd(h.shares * netDiv(h), h.ccy), 0);
+  const biU = bonds.reduce((s,b)  => s + toUsd(b.faceValue * b.coupon, b.ccy), 0);
+  const tiU = siU + biU;
+
+  document.getElementById('asOf').textContent = asOf;
+
+  // Metrics
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-label">Portfolio value</div>
+      <div class="metric-value">${fK(tvU)}</div>
+      <div class="metric-sub">stocks ${fK(svU)} · bonds ${fK(bvU)}</div>
+    </div>
+    <div class="metric accent-card">
+      <div class="metric-label">Net annual income</div>
+      <div class="metric-value">${fK(tiU)}</div>
+      <div class="metric-sub">after 15% WHT on dividends</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Monthly income</div>
+      <div class="metric-value">${fK(tiU/12)}</div>
+      <div class="metric-sub">${f(tvU>0?tiU/tvU*100:0,2)}% blended yield</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Stock / bond income</div>
+      <div class="metric-value">${fK(siU)}</div>
+      <div class="metric-sub">bonds ${fK(biU)} per yr</div>
+    </div>`;
+
+  // Allocation bar
+  const segs = [
+    ...stocks.map((h,i) => ({ v: toUsd(h.shares*h.price,h.ccy), c: STOCK_COLORS[i%STOCK_COLORS.length] })),
+    ...bonds.map((b,i)  => ({ v: toUsd(b.faceValue,b.ccy),       c: BOND_COLORS[i%BOND_COLORS.length]  })),
+  ];
+  document.getElementById('allocBar').innerHTML = segs
+    .map(s => `<div class="alloc-seg" style="width:${f(tvU>0?s.v/tvU*100:0,2)}%;background:${s.c}"></div>`)
+    .join('');
+
+  // Stock rows
+  const sRows = stocks.map((h,i) => {
+    const lv  = h.shares * h.price;
+    const uv  = toUsd(lv, h.ccy);
+    const gi  = h.shares * h.div;
+    const ni  = h.shares * netDiv(h);
+    const gy  = h.price > 0 ? (h.div / h.price * 100) : 0;
+    const pct = tvU > 0 ? (uv / tvU * 100) : 0;
+    const sharesDisplay = h.shares % 1 === 0 ? h.shares : f(h.shares, 4);
+    const rmBtn = isEditor
+      ? `<button class="rm-btn" onclick="stocks.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
+      : '';
+    return `<tr>
+      <td>
+        <div class="ticker" style="color:${STOCK_COLORS[i%STOCK_COLORS.length]}">${h.ticker}<span class="ccy-tag">${h.ccy}</span></div>
+        <div class="co-name">${h.name}</div>
+      </td>
+      <td class="r"><span class="val-primary">${sharesDisplay}</span></td>
+      <td class="r">
+        ${editableCell('stock',i,'price',h.price,sym(h.ccy)+f(h.price))}
+        <div class="val-sub">${fK(uv)} · ${f(pct,1)}%</div>
+      </td>
+      <td class="r"><span class="yield-pill ${yc(gy)}">${f(gy,2)}%</span></td>
+      <td class="r">
+        ${editableCell('stock',i,'div',h.div,sym(h.ccy)+f(gi,2))}
+        <div class="val-sub">net ${sym(h.ccy)}${f(ni,2)}</div>
+      </td>
+      <td class="c">${rmBtn}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('stockSection').innerHTML = `
+    <div class="section-head"><span class="section-label">Stocks</span><div class="section-line"></div></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Holding</th><th class="r">Shares</th>
+          <th class="r">Price${isEditor?' ✏':''}</th>
+          <th class="r">Yield</th>
+          <th class="r">Gross ann. income${isEditor?' ✏':''}</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${sRows}</tbody>
+      </table>
+    </div>`;
+
+  // Bond rows
+  const bRows = bonds.map((b,i) => {
+    const ai  = b.faceValue * b.coupon;
+    const uv  = toUsd(b.faceValue, b.ccy);
+    const pct = tvU > 0 ? (uv / tvU * 100) : 0;
+    const rmBtn = isEditor
+      ? `<button class="rm-btn" onclick="bonds.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
+      : '';
+    return `<tr>
+      <td>
+        <div class="ticker" style="color:${BOND_COLORS[i%BOND_COLORS.length]}">${b.name}<span class="ccy-tag">${b.ccy}</span></div>
+        <div class="co-name">matures ${b.maturity}</div>
+      </td>
+      <td class="r">—</td>
+      <td class="r">
+        ${editableCell('bond',i,'faceValue',b.faceValue,sym(b.ccy)+f(b.faceValue,0))}
+        <div class="val-sub">${fK(uv)} · ${f(pct,1)}%</div>
+      </td>
+      <td class="r"><span class="yield-pill yh">${f(b.coupon*100,1)}%</span></td>
+      <td class="r">
+        <span class="val-primary">${sym(b.ccy)}${f(ai,2)}</span>
+        <div class="val-sub">no WHT</div>
+      </td>
+      <td class="c">${rmBtn}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('bondSection').innerHTML = `
+    <div class="section-head"><span class="section-label">Bonds</span><div class="section-line"></div></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Holding</th><th class="r">—</th>
+          <th class="r">Face value${isEditor?' ✏':''}</th>
+          <th class="r">Coupon</th>
+          <th class="r">Annual income</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${bRows}</tbody>
+      </table>
+    </div>`;
+}
+
+function onFxChange(val) {
+  const v = parseFloat(val);
+  if (v > 0) { eurUsd = v; if (isEditor) scheduleSave(); render(); }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+asOf = new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+render();
+loadPortfolio(); // load saved state from Cloudflare KV
+</script>
+</body>
+</html>
