@@ -446,7 +446,14 @@ async function submitLogin() {
   btn.disabled = false;
 }
 
-function lockEditor() {
+async function lockEditor() {
+  // Save immediately before locking — don't wait for the debounce timer
+  clearTimeout(saveTimer);
+  if (isEditor) {
+    setSaveStatus('saving', 'Saving…');
+    await savePortfolio();
+  }
+  // Now safe to clear everything
   isEditor = false;
   editing = null;
   window._ek = null;
