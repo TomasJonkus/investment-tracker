@@ -38,7 +38,6 @@
 
   .tracker { max-width: 880px; margin: 0 auto; }
 
-  /* Header */
   .header {
     display: flex; align-items: baseline; justify-content: space-between;
     flex-wrap: wrap; gap: 0.5rem;
@@ -68,11 +67,7 @@
   .rbtn:hover { background: var(--surface2); color: var(--text); }
   .rbtn:disabled { opacity: 0.5; cursor: default; }
 
-  /* Editor bar */
-  .editor-bar {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 1rem; flex-wrap: wrap;
-  }
+  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
   .editor-badge {
     font-size: 10px; padding: 3px 8px; border-radius: 20px;
     background: var(--gold-bg); color: var(--gold);
@@ -90,7 +85,6 @@
   }
   .lock-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
 
-  /* Login modal */
   .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.35);
     display: flex; align-items: center; justify-content: center;
@@ -124,25 +118,30 @@
 
   /* Metrics */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 1.5rem; }
-  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.1rem; }
+  .metric {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1rem 1.1rem;
+  }
+  .metric.clickable { cursor: pointer; user-select: none; transition: all 0.15s; }
+  .metric.clickable:hover { border-color: var(--border2); background: var(--surface2); }
   .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
   .metric-value { font-family: 'DM Mono', monospace; font-size: 1.25rem; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
-  .metric-sub   { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .metric-sub  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .metric-sub2 { font-size: 10px; color: var(--text3); margin-top: 2px; }
   .metric.accent-card { background: var(--accent); border-color: var(--accent2); }
   .metric.accent-card .metric-label { color: rgba(255,255,255,0.65); }
   .metric.accent-card .metric-value { color: #fff; }
-  .metric.accent-card .metric-sub   { color: rgba(255,255,255,0.55); }
+  .metric.accent-card .metric-sub  { color: rgba(255,255,255,0.55); }
+  .metric.accent-card .metric-sub2 { color: rgba(255,255,255,0.45); }
+  .toggle-hint { font-size: 9px; color: var(--text3); margin-top: 5px; letter-spacing: 0.03em; }
 
-  /* Allocation bar */
   .alloc-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; gap: 2px; margin-bottom: 1.75rem; }
   .alloc-seg { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
 
-  /* Section */
   .section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; }
   .section-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
   .section-line  { flex: 1; height: 1px; background: var(--border); }
 
-  /* Table */
   .tbl-wrap { overflow-x: auto; margin-bottom: 1.5rem; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   thead th {
@@ -172,7 +171,6 @@
   .val-primary { font-family: 'DM Mono', monospace; font-size: 12px; }
   .val-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
 
-  /* Inline edit */
   .editable { position: relative; display: inline-flex; align-items: center; gap: 4px; }
   .edit-icon { cursor: pointer; color: var(--text3); font-size: 11px; opacity: 0; transition: opacity 0.15s; user-select: none; padding: 2px; }
   tr:hover .edit-icon { opacity: 0.6; }
@@ -183,14 +181,12 @@
     border-radius: 4px; background: var(--surface); color: var(--text); outline: none;
   }
 
-  /* Remove btn */
   .rm-btn {
     background: none; border: none; cursor: pointer; color: var(--text3);
     font-size: 16px; padding: 2px 4px; border-radius: 4px; transition: all 0.15s; line-height: 1;
   }
   .rm-btn:hover { color: var(--red); background: var(--red-bg); }
 
-  /* Action buttons */
   .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.25rem; }
   .add-btn {
     font-size: 12px; padding: 7px 16px; border: 1px solid var(--border2);
@@ -199,7 +195,6 @@
   }
   .add-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-  /* Add form */
   .add-form {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius-lg); padding: 1.25rem; margin-top: 1rem;
@@ -269,7 +264,6 @@
   </div>
   <div id="addForm"></div>
 
-  <!-- Login modal -->
   <div class="modal-overlay" id="loginModal" style="display:none" onclick="if(event.target===this)hideLogin()">
     <div class="modal">
       <h3>Editor login</h3>
@@ -288,18 +282,15 @@
 </div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────────
 const WORKER_URL = 'https://portfolio-worker.tomas-jonkus.workers.dev';
-// No editor key stored here — password is validated securely by the Worker
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let eurUsd   = 1.1707;
-let asOf     = '—';
-let isEditor = false;
-let editing  = null;
-let saveTimer = null;
+let eurUsd     = 1.1707;
+let asOf       = '—';
+let isEditor   = false;
+let editing    = null;
+let saveTimer  = null;
+let incomeView = 'stock'; // toggles between 'stock' and 'bond' on the 4th card
 
-// Default holdings — overwritten by Cloudflare KV on load
 let stocks = [
   { ticker:'TGT',   name:'Target Corp',          shares:5,       price:130.18, div:4.56, wht:0.15, ccy:'USD' },
   { ticker:'WPC',   name:'W.P. Carey',            shares:11,      price:69.25,  div:3.72, wht:0.15, ccy:'USD' },
@@ -316,16 +307,18 @@ const STOCK_COLORS = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400
 const BOND_COLORS  = ['#7b5ea7','#9b8ec4','#4a3f6b'];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-const toUsd  = (n, ccy) => ccy === 'EUR' ? n * eurUsd : n;
-const netDiv = h => h.div * (1 - h.wht);
-const f      = (n, d=2) => Number(n).toFixed(d);
-const fK     = n => n >= 1000 ? '$' + f(n/1000,1) + 'k' : '$' + f(n,2);
-const sym    = ccy => ccy === 'EUR' ? '€' : '$';
-const yc     = y => y < 3 ? 'yl' : y < 5 ? 'ym' : 'yh';
-const nowStr = () => {
+const toUsd      = (n, ccy) => ccy === 'EUR' ? n * eurUsd : n;
+const usdToEur   = n => n / eurUsd;
+const netDiv     = h => h.div * (1 - h.wht);
+const f          = (n, d=2) => Number(n).toFixed(d);
+const fE         = n => n >= 1000 ? '€' + f(n/1000,1) + 'k' : '€' + f(n,2);  // EUR formatted
+const fD         = n => n >= 1000 ? '$' + f(n/1000,1) + 'k' : '$' + f(n,2);  // USD formatted
+const sym        = ccy => ccy === 'EUR' ? '€' : '$';
+const yc         = y => y < 3 ? 'yl' : y < 5 ? 'ym' : 'yh';
+const nowStr     = () => {
   const d = new Date();
-  return d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
-       + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+       + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 };
 
 // ── PERSISTENCE ───────────────────────────────────────────────────────────────
@@ -338,9 +331,7 @@ async function loadPortfolio() {
     if (data.bonds  && data.bonds.length)  bonds  = data.bonds;
     if (data.eurUsd) eurUsd = data.eurUsd;
     if (data.asOf)   asOf   = data.asOf;
-  } catch(e) {
-    console.warn('Could not load portfolio:', e);
-  }
+  } catch(e) { console.warn('Could not load portfolio:', e); }
   render();
 }
 
@@ -355,10 +346,7 @@ async function savePortfolio() {
   try {
     const res = await fetch(`${WORKER_URL}/portfolio`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Editor-Key': window._ek  // password held in memory only, never in source
-      },
+      headers: { 'Content-Type': 'application/json', 'X-Editor-Key': window._ek },
       body: JSON.stringify({ stocks, bonds, eurUsd, asOf })
     });
     if (res.ok) {
@@ -367,9 +355,7 @@ async function savePortfolio() {
     } else {
       setSaveStatus('error', 'Save failed');
     }
-  } catch(e) {
-    setSaveStatus('error', 'Save failed');
-  }
+  } catch(e) { setSaveStatus('error', 'Save failed'); }
 }
 
 function setSaveStatus(cls, msg) {
@@ -379,11 +365,10 @@ function setSaveStatus(cls, msg) {
   el.textContent = msg;
 }
 
-// ── PRICE REFRESH (Yahoo Finance, no rate limits) ─────────────────────────────
+// ── REFRESH ───────────────────────────────────────────────────────────────────
 async function refreshPrices() {
   const btn = document.getElementById('refreshBtn');
-  btn.textContent = 'Refreshing…';
-  btn.disabled = true;
+  btn.textContent = 'Refreshing…'; btn.disabled = true;
   try {
     const usdTickers = stocks.filter(s => s.ccy === 'USD').map(s => s.ticker);
     const res = await fetch(`${WORKER_URL}/refresh`, {
@@ -398,15 +383,12 @@ async function refreshPrices() {
     if (data.EURUSD) eurUsd = data.EURUSD;
     asOf = nowStr();
     if (isEditor) scheduleSave();
-  } catch(e) {
-    console.error('Refresh failed:', e);
-  }
-  btn.textContent = '↻ Refresh';
-  btn.disabled = false;
+  } catch(e) { console.error('Refresh failed:', e); }
+  btn.textContent = '↻ Refresh'; btn.disabled = false;
   render();
 }
 
-// ── EDITOR AUTH ───────────────────────────────────────────────────────────────
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 function showLogin() {
   document.getElementById('loginModal').style.display = 'flex';
   setTimeout(() => document.getElementById('pwInput').focus(), 50);
@@ -416,12 +398,10 @@ function hideLogin() {
   document.getElementById('loginErr').textContent = '';
   document.getElementById('pwInput').value = '';
 }
-
 async function submitLogin() {
   const pw = document.getElementById('pwInput').value;
   const btn = document.querySelector('.modal-submit');
-  btn.textContent = 'Checking…';
-  btn.disabled = true;
+  btn.textContent = 'Checking…'; btn.disabled = true;
   try {
     const res = await fetch(`${WORKER_URL}/auth`, {
       method: 'POST',
@@ -429,7 +409,7 @@ async function submitLogin() {
       body: JSON.stringify({ key: pw })
     });
     if (res.ok) {
-      window._ek = pw; // store in memory only — gone when page closes
+      window._ek = pw;
       isEditor = true;
       hideLogin();
       document.getElementById('editorBar').style.display = 'flex';
@@ -442,21 +422,12 @@ async function submitLogin() {
   } catch(e) {
     document.getElementById('loginErr').textContent = 'Connection error. Try again.';
   }
-  btn.textContent = 'Unlock';
-  btn.disabled = false;
+  btn.textContent = 'Unlock'; btn.disabled = false;
 }
-
 async function lockEditor() {
-  // Save immediately before locking — don't wait for the debounce timer
   clearTimeout(saveTimer);
-  if (isEditor) {
-    setSaveStatus('saving', 'Saving…');
-    await savePortfolio();
-  }
-  // Now safe to clear everything
-  isEditor = false;
-  editing = null;
-  window._ek = null;
+  if (isEditor) { setSaveStatus('saving', 'Saving…'); await savePortfolio(); }
+  isEditor = false; editing = null; window._ek = null;
   document.getElementById('editorBar').style.display = 'none';
   document.getElementById('editorBtn').style.display = '';
   document.getElementById('actions').style.display = 'none';
@@ -472,7 +443,6 @@ function startEdit(type, idx, field, val) {
   const inp = document.getElementById('ei');
   if (inp) { inp.focus(); inp.select(); }
 }
-
 function commitEdit(val) {
   if (!editing) return;
   const v = parseFloat(val);
@@ -481,14 +451,11 @@ function commitEdit(val) {
     else bonds[editing.idx][editing.field] = v;
     scheduleSave();
   }
-  editing = null;
-  render();
+  editing = null; render();
 }
-
 function cancelEdit() { editing = null; render(); }
-
 function editableCell(type, idx, field, rawVal, display) {
-  const isActive = editing && editing.type === type && editing.idx === idx && editing.field === field;
+  const isActive = editing && editing.type===type && editing.idx===idx && editing.field===field;
   if (isActive) {
     return `<input id="ei" class="edit-input" type="number" value="${rawVal}" step="any"
       onblur="commitEdit(this.value)"
@@ -498,6 +465,12 @@ function editableCell(type, idx, field, rawVal, display) {
     ? `<span class="edit-icon" onclick="startEdit('${type}',${idx},'${field}',${rawVal})" title="Edit">✏</span>`
     : '';
   return `<span class="editable"><span class="val-primary">${display}</span>${pencil}</span>`;
+}
+
+// ── TOGGLE ────────────────────────────────────────────────────────────────────
+function toggleIncomeView() {
+  incomeView = incomeView === 'stock' ? 'bond' : 'stock';
+  render();
 }
 
 // ── ADD FORM ──────────────────────────────────────────────────────────────────
@@ -543,7 +516,6 @@ function showForm(type) {
       </div>`;
   }
 }
-
 function submitStock() {
   const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
   const name   = document.getElementById('f-name').value.trim();
@@ -553,12 +525,10 @@ function submitStock() {
   const ccy    = document.getElementById('f-ccy').value;
   const wht    = parseFloat(document.getElementById('f-wht').value) / 100;
   if (!ticker || isNaN(shares) || isNaN(div)) { alert('Please fill in ticker, shares and dividend.'); return; }
-  stocks.push({ ticker, name: name||ticker, shares, price: isNaN(price)?0:price, div, wht: isNaN(wht)?0.15:wht, ccy });
+  stocks.push({ ticker, name:name||ticker, shares, price:isNaN(price)?0:price, div, wht:isNaN(wht)?0.15:wht, ccy });
   document.getElementById('addForm').innerHTML = '';
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
-
 function submitBond() {
   const name      = document.getElementById('f-bname').value.trim();
   const faceValue = parseFloat(document.getElementById('f-fv').value);
@@ -568,12 +538,12 @@ function submitBond() {
   if (!name || isNaN(faceValue) || isNaN(coupon)) { alert('Please fill in name, face value and coupon.'); return; }
   bonds.push({ name, faceValue, coupon, maturity, ccy });
   document.getElementById('addForm').innerHTML = '';
-  scheduleSave();
-  render();
+  scheduleSave(); render();
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render() {
+  // USD totals
   const svU = stocks.reduce((s,h) => s + toUsd(h.shares * h.price, h.ccy), 0);
   const bvU = bonds.reduce((s,b)  => s + toUsd(b.faceValue, b.ccy), 0);
   const tvU = svU + bvU;
@@ -581,29 +551,49 @@ function render() {
   const biU = bonds.reduce((s,b)  => s + toUsd(b.faceValue * b.coupon, b.ccy), 0);
   const tiU = siU + biU;
 
+  // EUR equivalents
+  const tvE = usdToEur(tvU);
+  const svE = usdToEur(svU);
+  const bvE = usdToEur(bvU);
+  const tiE = usdToEur(tiU);
+  const siE = usdToEur(siU);
+  const biE = usdToEur(biU);
+
   document.getElementById('asOf').textContent = asOf;
 
-  // Metrics
+  // 4th card toggle
+  const isStock = incomeView === 'stock';
+  const t4label = isStock ? 'Stock income' : 'Bond income';
+  const t4eur   = isStock ? siE : biE;
+  const t4usd   = isStock ? siU : biU;
+  const t4other = isStock ? `bonds ${fE(biE)} / yr` : `stocks ${fE(siE)} / yr`;
+  const t4hint  = isStock ? '↔ click to see bond income' : '↔ click to see stock income';
+
   document.getElementById('metrics').innerHTML = `
     <div class="metric">
       <div class="metric-label">Portfolio value</div>
-      <div class="metric-value">${fK(tvU)}</div>
-      <div class="metric-sub">stocks ${fK(svU)} · bonds ${fK(bvU)}</div>
+      <div class="metric-value">${fE(tvE)}</div>
+      <div class="metric-sub">${fD(tvU)}</div>
+      <div class="metric-sub2">stocks ${fE(svE)} · bonds ${fE(bvE)}</div>
     </div>
     <div class="metric accent-card">
       <div class="metric-label">Net annual income</div>
-      <div class="metric-value">${fK(tiU)}</div>
-      <div class="metric-sub">after 15% WHT on dividends</div>
+      <div class="metric-value">${fE(tiE)}</div>
+      <div class="metric-sub">${fD(tiU)}</div>
+      <div class="metric-sub2">after 15% WHT on dividends</div>
     </div>
     <div class="metric">
       <div class="metric-label">Monthly income</div>
-      <div class="metric-value">${fK(tiU/12)}</div>
-      <div class="metric-sub">${f(tvU>0?tiU/tvU*100:0,2)}% blended yield</div>
+      <div class="metric-value">${fE(tiE/12)}</div>
+      <div class="metric-sub">${fD(tiU/12)}</div>
+      <div class="metric-sub2">${f(tvU>0?tiU/tvU*100:0,2)}% blended yield</div>
     </div>
-    <div class="metric">
-      <div class="metric-label">Stock / bond income</div>
-      <div class="metric-value">${fK(siU)}</div>
-      <div class="metric-sub">bonds ${fK(biU)} per yr</div>
+    <div class="metric clickable" onclick="toggleIncomeView()" title="Click to toggle">
+      <div class="metric-label">${t4label}</div>
+      <div class="metric-value">${fE(t4eur)}</div>
+      <div class="metric-sub">${fD(t4usd)}</div>
+      <div class="metric-sub2">${t4other}</div>
+      <div class="toggle-hint">${t4hint}</div>
     </div>`;
 
   // Allocation bar
@@ -615,10 +605,11 @@ function render() {
     .map(s => `<div class="alloc-seg" style="width:${f(tvU>0?s.v/tvU*100:0,2)}%;background:${s.c}"></div>`)
     .join('');
 
-  // Stock rows
+  // Stock rows: value primary (EUR), price as subtext below local value
   const sRows = stocks.map((h,i) => {
     const lv  = h.shares * h.price;
     const uv  = toUsd(lv, h.ccy);
+    const ev  = usdToEur(uv);
     const gi  = h.shares * h.div;
     const ni  = h.shares * netDiv(h);
     const gy  = h.price > 0 ? (h.div / h.price * 100) : 0;
@@ -634,8 +625,9 @@ function render() {
       </td>
       <td class="r"><span class="val-primary">${sharesDisplay}</span></td>
       <td class="r">
-        ${editableCell('stock',i,'price',h.price,sym(h.ccy)+f(h.price))}
-        <div class="val-sub">${fK(uv)} · ${f(pct,1)}%</div>
+        <span class="val-primary">${fE(ev)}</span>
+        <div class="val-sub">${sym(h.ccy)}${f(lv,0)} · ${f(pct,1)}%</div>
+        <div class="val-sub">${editableCell('stock',i,'price',h.price,'@ '+sym(h.ccy)+f(h.price))}</div>
       </td>
       <td class="r"><span class="yield-pill ${yc(gy)}">${f(gy,2)}%</span></td>
       <td class="r">
@@ -653,7 +645,7 @@ function render() {
         <thead><tr>
           <th>Holding</th>
           <th class="r">Shares</th>
-          <th class="r">Price${isEditor?' ✏':''}</th>
+          <th class="r">Value (€)${isEditor?' ✏':''}</th>
           <th class="r">Yield</th>
           <th class="r">Gross ann. income${isEditor?' ✏':''}</th>
           <th></th>
@@ -666,7 +658,9 @@ function render() {
   const bRows = bonds.map((b,i) => {
     const ai  = b.faceValue * b.coupon;
     const uv  = toUsd(b.faceValue, b.ccy);
+    const ev  = usdToEur(uv);
     const pct = tvU > 0 ? (uv / tvU * 100) : 0;
+    const fvEur = b.ccy === 'EUR' ? b.faceValue : ev;
     const rmBtn = isEditor
       ? `<button class="rm-btn" onclick="bonds.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
       : '';
@@ -678,7 +672,7 @@ function render() {
       <td class="r">—</td>
       <td class="r">
         ${editableCell('bond',i,'faceValue',b.faceValue,sym(b.ccy)+f(b.faceValue,0))}
-        <div class="val-sub">${fK(uv)} · ${f(pct,1)}%</div>
+        <div class="val-sub">${fE(fvEur)} · ${f(pct,1)}%</div>
       </td>
       <td class="r"><span class="yield-pill yh">${f(b.coupon*100,1)}%</span></td>
       <td class="r">
@@ -708,8 +702,8 @@ function render() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 asOf = new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
-render();         // render defaults immediately so page isn't blank
-loadPortfolio();  // then overwrite with saved data from Cloudflare KV
+render();
+loadPortfolio();
 </script>
 </body>
 </html>
