@@ -280,12 +280,6 @@
     <button class="lock-btn" onclick="lockEditor()">Lock</button>
   </div>
 
-  <div class="fx-row">
-    <span>EUR/USD:</span>
-    <input type="number" id="fxInput" value="1.1707" step="0.0001" min="0.5" max="2" oninput="onFxChange(this.value)" />
-    <span style="color:var(--text3)">· all totals in USD</span>
-  </div>
-
   <div class="metrics" id="metrics"></div>
   <div class="alloc-bar" id="allocBar"></div>
   <div id="stockSection"></div>
@@ -311,7 +305,7 @@
     </div>
   </div>
 
-  <p class="note">USD stock prices and EUR/USD rate refresh via Alpha Vantage. Nasdaq Baltic prices (TEL1L, IGN1L) update manually — click ✏ in editor mode. Net income shown after 15% withholding tax on dividends.</p>
+  <p class="note">Stock prices and EUR/USD rate refresh via the ↻ Refresh button. Nasdaq Baltic prices (TEL1L, IGN1L) may need manual correction in editor mode — click ✏ to edit. Net income shown after 15% withholding tax on dividends.</p>
 </div>
 
 <script>
@@ -425,7 +419,6 @@ async function refreshPrices() {
     });
     if (data.EURUSD) {
       eurUsd = data.EURUSD;
-      document.getElementById('fxInput').value = f(eurUsd, 4);
     }
     asOf = nowStr();
     if (isEditor) scheduleSave();
@@ -712,11 +705,6 @@ function render() {
         <tbody>${bRows}</tbody>
       </table>
     </div>`;
-}
-
-function onFxChange(val) {
-  const v = parseFloat(val);
-  if (v > 0) { eurUsd = v; if (isEditor) scheduleSave(); render(); }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
