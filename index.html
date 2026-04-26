@@ -257,10 +257,12 @@
   <div class="alloc-bar" id="allocBar"></div>
   <div id="stockSection"></div>
   <div id="bondSection"></div>
+  <div id="crowdSection"></div>
 
   <div class="actions" id="actions" style="display:none">
     <button class="add-btn" onclick="showForm('stock')">+ Add stock</button>
     <button class="add-btn" onclick="showForm('bond')">+ Add bond</button>
+    <button class="add-btn" onclick="showForm('crowd')">+ Add crowdfunding</button>
   </div>
   <div id="addForm"></div>
 
@@ -302,9 +304,13 @@ let stocks = [
 let bonds = [
   { name:'Eleving', faceValue:200, coupon:0.13, maturity:'Oct 2028', ccy:'EUR' },
 ];
+let crowd = [
+  // { name:'Example Project', platform:'Estateguru', value:500, rate:0.10, maturity:'2027-12-31', ccy:'EUR' },
+];
 
 const STOCK_COLORS = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400','#1b7a4a','#0d5c7a','#5a4e2d','#2c6e7a'];
 const BOND_COLORS  = ['#7b5ea7','#9b8ec4','#4a3f6b'];
+const CROWD_COLORS = ['#2c7a4b','#4aab72','#1a5c38','#82c49a','#0f3d24'];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const toUsd      = (n, ccy) => ccy === 'EUR' ? n * eurUsd : n;
@@ -321,6 +327,27 @@ const nowStr     = () => {
        + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 };
 
+// ── CROWDFUNDING PAYMENT HELPERS ──────────────────────────────────────────────
+// Payments on Jan 1, Apr 1, Jul 1, Oct 1 each year
+function remainingYearIncome(c) {
+  if (!c.rate || !c.maturity) return 0;
+  const quarterly = c.value * c.rate / 4;
+  const now = new Date();
+  const year = now.getFullYear();
+  const maturity = new Date(c.maturity);
+  const payMonths = [0, 3, 6, 9]; // Jan, Apr, Jul, Oct
+  let total = 0;
+  for (const mo of payMonths) {
+    const payDate = new Date(year, mo, 1);
+    if (payDate > now && payDate <= maturity) total += quarterly;
+  }
+  return total;
+}
+function fmtDate(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr).toLocaleDateString('en-GB', {month:'short', year:'numeric'});
+}
+
 // ── PERSISTENCE ───────────────────────────────────────────────────────────────
 async function loadPortfolio() {
   try {
@@ -329,6 +356,7 @@ async function loadPortfolio() {
     const data = await res.json();
     if (data.stocks && data.stocks.length) stocks = data.stocks;
     if (data.bonds  && data.bonds.length)  bonds  = data.bonds;
+    if (data.crowd  && data.crowd.length)  crowd  = data.crowd;
     if (data.eurUsd) eurUsd = data.eurUsd;
     if (data.asOf)   asOf   = data.asOf;
   } catch(e) { console.warn('Could not load portfolio:', e); }
@@ -347,7 +375,7 @@ async function savePortfolio() {
     const res = await fetch(`${WORKER_URL}/portfolio`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Editor-Key': window._ek },
-      body: JSON.stringify({ stocks, bonds, eurUsd, asOf })
+      body: JSON.stringify({ stocks, bonds, crowd, eurUsd, asOf })
     });
     if (res.ok) {
       setSaveStatus('saved', 'Saved ✓');
@@ -448,7 +476,8 @@ function commitEdit(val) {
   const v = parseFloat(val);
   if (!isNaN(v) && v >= 0) {
     if (editing.type === 'stock') stocks[editing.idx][editing.field] = v;
-    else bonds[editing.idx][editing.field] = v;
+    else if (editing.type === 'bond') bonds[editing.idx][editing.field] = v;
+    else if (editing.type === 'crowd') crowd[editing.idx][editing.field] = v;
     scheduleSave();
   }
   editing = null; render();
@@ -496,6 +525,25 @@ function showForm(type) {
           <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
         </div>
       </div>`;
+  } else if (type === 'crowd') {
+    el.innerHTML = `
+      <div class="add-form">
+        <h3>Add crowdfunding position</h3>
+        <div class="form-grid">
+          <div class="form-field"><label>Project / name</label><input id="f-cname" placeholder="e.g. Berlin Apartments" /></div>
+          <div class="form-field"><label>Platform</label><input id="f-platform" placeholder="e.g. Estateguru" /></div>
+          <div class="form-field"><label>Invested value</label><input id="f-cvalue" type="number" step="any" placeholder="0" /></div>
+          <div class="form-field"><label>Annual return %</label><input id="f-crate" type="number" step="0.1" placeholder="e.g. 10.5" /></div>
+          <div class="form-field"><label>Maturity date</label><input id="f-cmat" type="date" /></div>
+          <div class="form-field"><label>Currency</label>
+            <select id="f-cccy"><option value="EUR">EUR</option><option value="USD">USD</option></select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="form-submit" onclick="submitCrowd()">Add to portfolio</button>
+          <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
+        </div>
+      </div>`;
   } else {
     el.innerHTML = `
       <div class="add-form">
@@ -540,13 +588,26 @@ function submitBond() {
   document.getElementById('addForm').innerHTML = '';
   scheduleSave(); render();
 }
+function submitCrowd() {
+  const name     = document.getElementById('f-cname').value.trim();
+  const platform = document.getElementById('f-platform').value.trim();
+  const value    = parseFloat(document.getElementById('f-cvalue').value);
+  const rate     = parseFloat(document.getElementById('f-crate').value) / 100;
+  const maturity = document.getElementById('f-cmat').value; // yyyy-mm-dd
+  const ccy      = document.getElementById('f-cccy').value;
+  if (!name || isNaN(value)) { alert('Please fill in name and invested value.'); return; }
+  crowd.push({ name, platform: platform||'', value, rate: isNaN(rate)?0:rate, maturity: maturity||'', ccy });
+  document.getElementById('addForm').innerHTML = '';
+  scheduleSave(); render();
+}
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render() {
   // USD totals
   const svU = stocks.reduce((s,h) => s + toUsd(h.shares * h.price, h.ccy), 0);
   const bvU = bonds.reduce((s,b)  => s + toUsd(b.faceValue, b.ccy), 0);
-  const tvU = svU + bvU;
+  const cvU = crowd.reduce((s,c)  => s + toUsd(c.value, c.ccy), 0);
+  const tvU = svU + bvU + cvU;
   const siU = stocks.reduce((s,h) => s + toUsd(h.shares * netDiv(h), h.ccy), 0);
   const biU = bonds.reduce((s,b)  => s + toUsd(b.faceValue * b.coupon, b.ccy), 0);
   const tiU = siU + biU;
@@ -555,6 +616,7 @@ function render() {
   const tvE = usdToEur(tvU);
   const svE = usdToEur(svU);
   const bvE = usdToEur(bvU);
+  const cvE = usdToEur(cvU);
   const tiE = usdToEur(tiU);
   const siE = usdToEur(siU);
   const biE = usdToEur(biU);
@@ -574,7 +636,7 @@ function render() {
       <div class="metric-label">Portfolio value</div>
       <div class="metric-value">${fE(tvE)}</div>
       <div class="metric-sub">${fD(tvU)}</div>
-      <div class="metric-sub2">stocks ${fE(svE)} · bonds ${fE(bvE)}</div>
+      <div class="metric-sub2">stocks ${fE(svE)} · bonds ${fE(bvE)}${cvE > 0 ? ' · RE ' + fE(cvE) : ''}</div>
     </div>
     <div class="metric accent-card">
       <div class="metric-label">Net annual income</div>
@@ -600,6 +662,7 @@ function render() {
   const segs = [
     ...stocks.map((h,i) => ({ v: toUsd(h.shares*h.price,h.ccy), c: STOCK_COLORS[i%STOCK_COLORS.length] })),
     ...bonds.map((b,i)  => ({ v: toUsd(b.faceValue,b.ccy),       c: BOND_COLORS[i%BOND_COLORS.length]  })),
+    ...crowd.map((c,i)  => ({ v: toUsd(c.value,c.ccy),            c: CROWD_COLORS[i%CROWD_COLORS.length]})),
   ];
   document.getElementById('allocBar').innerHTML = segs
     .map(s => `<div class="alloc-seg" style="width:${f(tvU>0?s.v/tvU*100:0,2)}%;background:${s.c}"></div>`)
@@ -696,6 +759,60 @@ function render() {
           <th></th>
         </tr></thead>
         <tbody>${bRows}</tbody>
+      </table>
+    </div>`;
+
+  // Crowdfunding rows
+  const cRows = crowd.map((c,i) => {
+    const uv       = toUsd(c.value, c.ccy);
+    const ev       = c.ccy === 'EUR' ? c.value : usdToEur(uv);
+    const pct      = tvU > 0 ? (uv / tvU * 100) : 0;
+    const quarterly = c.rate ? c.value * c.rate / 4 : 0;
+    const yearInc  = remainingYearIncome(c);
+    const rmBtn = isEditor
+      ? `<button class="rm-btn" onclick="crowd.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
+      : '';
+    return `<tr>
+      <td>
+        <div class="ticker" style="color:${CROWD_COLORS[i%CROWD_COLORS.length]}">${c.name}<span class="ccy-tag">${c.ccy}</span></div>
+        <div class="co-name">${c.platform || 'Real estate crowdfunding'}</div>
+      </td>
+      <td class="r">
+        ${editableCell('crowd',i,'value',c.value,sym(c.ccy)+f(c.value,0))}
+        <div class="val-sub">${fE(ev)} · ${f(pct,1)}%</div>
+      </td>
+      <td class="r">
+        ${c.rate ? `<span class="yield-pill ${yc(c.rate*100)}">${f(c.rate*100,1)}%</span>` : '—'}
+      </td>
+      <td class="r">
+        <span class="val-primary">${c.maturity ? fmtDate(c.maturity) : '—'}</span>
+      </td>
+      <td class="r">
+        <span class="val-primary">${quarterly > 0 ? sym(c.ccy)+f(quarterly,2) : '—'}</span>
+        <div class="val-sub">per quarter</div>
+      </td>
+      <td class="r">
+        <span class="val-primary" style="${yearInc>0?'color:var(--accent)':''}">${yearInc > 0 ? sym(c.ccy)+f(yearInc,2) : '—'}</span>
+        <div class="val-sub">${yearInc > 0 ? 'rest of '+new Date().getFullYear() : ''}</div>
+      </td>
+      <td class="c">${rmBtn}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('crowdSection').innerHTML = crowd.length === 0 && !isEditor ? '' : `
+    <div class="section-head"><span class="section-label">Real Estate Crowdfunding</span><div class="section-line"></div></div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Project</th>
+          <th class="r">Invested${isEditor?' ✏':''}</th>
+          <th class="r">Return</th>
+          <th class="r">Maturity</th>
+          <th class="r">Quarterly payment</th>
+          <th class="r">Remaining ${new Date().getFullYear()} income</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${cRows}${crowd.length===0?'<tr><td colspan="7" style="color:var(--text3);font-size:12px;padding:12px 10px;">No positions yet — click + Add crowdfunding above</td></tr>':''}</tbody>
       </table>
     </div>`;
 }
