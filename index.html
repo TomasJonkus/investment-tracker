@@ -328,24 +328,79 @@ const nowStr     = () => {
 };
 
 // ── CROWDFUNDING PAYMENT HELPERS ──────────────────────────────────────────────
-// Payments on Jan 1, Apr 1, Jul 1, Oct 1 each year
+// Payment dates: Jan 1, Apr 1, Jul 1, Oct 1 each year
+// Each payment = principal × rate × (days in period / 365)
+// Final payment at maturity = principal × rate × (days from last quarterly date to maturity / 365)
+
+function quarterlyDates(fromYear, toYear) {
+  // Generate all quarterly payment dates (Jan 1, Apr 1, Jul 1, Oct 1) across year range
+  const dates = [];
+  for (let yr = fromYear; yr <= toYear + 1; yr++) {
+    [0, 3, 6, 9].forEach(mo => dates.push(new Date(yr, mo, 1)));
+  }
+  return dates;
+}
+
 function remainingYearIncome(c) {
   if (!c.rate || !c.maturity) return 0;
-  const quarterly = c.value * c.rate / 4;
-  const now = new Date();
-  const year = now.getFullYear();
+  const today    = new Date();
   const maturity = new Date(c.maturity);
-  const payMonths = [0, 3, 6, 9]; // Jan, Apr, Jul, Oct
+  const year     = today.getFullYear();
+  if (maturity <= today) return 0;
+
+  // Find the most recent past quarterly date (last payment date)
+  const allDates = quarterlyDates(year - 1, year + 1);
+  let lastPaid = allDates.filter(d => d <= today).pop();
+
+  // Build list of future payment events: quarterly dates + maturity
+  // Each event covers: previous date → this date
+  const futureDates = allDates.filter(d => d > today && d <= maturity);
+  const paymentEvents = [...futureDates, maturity]; // maturity is always the last payment
+
+  // Remove duplicate if maturity coincides exactly with a quarterly date
+  const uniqueEvents = paymentEvents.filter((d, i, arr) =>
+    i === 0 || d.getTime() !== arr[i-1].getTime()
+  );
+
   let total = 0;
-  for (const mo of payMonths) {
-    const payDate = new Date(year, mo, 1);
-    if (payDate > now && payDate <= maturity) total += quarterly;
+  let periodStart = lastPaid;
+
+  for (const eventDate of uniqueEvents) {
+    // Only count payments that fall within current calendar year
+    if (eventDate.getFullYear() === year || eventDate <= new Date(year, 11, 31)) {
+      if (eventDate.getFullYear() === year) {
+        const days = (eventDate - periodStart) / (1000 * 60 * 60 * 24);
+        total += c.value * c.rate * days / 365;
+      }
+    }
+    periodStart = eventDate;
   }
   return total;
 }
+
+function nextQuarterlyPayment(c) {
+  // Returns { date, amount } for the next upcoming payment
+  if (!c.rate || !c.maturity) return null;
+  const today    = new Date();
+  const maturity = new Date(c.maturity);
+  if (maturity <= today) return null;
+
+  const year = today.getFullYear();
+  const allDates = quarterlyDates(year - 1, year + 1);
+  const lastPaid = allDates.filter(d => d <= today).pop();
+
+  // Next event is either next quarterly date or maturity, whichever is sooner
+  const nextQuarterly = allDates.find(d => d > today);
+  const nextEvent = (!nextQuarterly || maturity < nextQuarterly) ? maturity : nextQuarterly;
+
+  const days = (nextEvent - lastPaid) / (1000 * 60 * 60 * 24);
+  const amount = c.value * c.rate * days / 365;
+  return { date: nextEvent, amount };
+}
+
 function fmtDate(dateStr) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-GB', {month:'short', year:'numeric'});
+  return new Date(dateStr).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
 }
 
 // ── PERSISTENCE ───────────────────────────────────────────────────────────────
@@ -764,11 +819,11 @@ function render() {
 
   // Crowdfunding rows
   const cRows = crowd.map((c,i) => {
-    const uv       = toUsd(c.value, c.ccy);
-    const ev       = c.ccy === 'EUR' ? c.value : usdToEur(uv);
-    const pct      = tvU > 0 ? (uv / tvU * 100) : 0;
-    const quarterly = c.rate ? c.value * c.rate / 4 : 0;
-    const yearInc  = remainingYearIncome(c);
+    const uv      = toUsd(c.value, c.ccy);
+    const ev      = c.ccy === 'EUR' ? c.value : usdToEur(uv);
+    const pct     = tvU > 0 ? (uv / tvU * 100) : 0;
+    const yearInc = remainingYearIncome(c);
+    const next    = nextQuarterlyPayment(c);
     const rmBtn = isEditor
       ? `<button class="rm-btn" onclick="crowd.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
       : '';
@@ -788,8 +843,8 @@ function render() {
         <span class="val-primary">${c.maturity ? fmtDate(c.maturity) : '—'}</span>
       </td>
       <td class="r">
-        <span class="val-primary">${quarterly > 0 ? sym(c.ccy)+f(quarterly,2) : '—'}</span>
-        <div class="val-sub">per quarter</div>
+        <span class="val-primary">${next ? sym(c.ccy)+f(next.amount,2) : '—'}</span>
+        <div class="val-sub">${next ? fmtDate(next.date.toISOString().split('T')[0]) : ''}</div>
       </td>
       <td class="r">
         <span class="val-primary" style="${yearInc>0?'color:var(--accent)':''}">${yearInc > 0 ? sym(c.ccy)+f(yearInc,2) : '—'}</span>
@@ -808,7 +863,7 @@ function render() {
           <th class="r">Invested${isEditor?' ✏':''}</th>
           <th class="r">Return</th>
           <th class="r">Maturity</th>
-          <th class="r">Quarterly payment</th>
+          <th class="r">Next payment</th>
           <th class="r">Remaining ${new Date().getFullYear()} income</th>
           <th></th>
         </tr></thead>
