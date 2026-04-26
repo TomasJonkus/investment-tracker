@@ -40,21 +40,14 @@
 
   /* Header */
   .header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.75rem;
-    padding-bottom: 1rem;
+    display: flex; align-items: baseline; justify-content: space-between;
+    flex-wrap: wrap; gap: 0.5rem;
+    margin-bottom: 1.75rem; padding-bottom: 1rem;
     border-bottom: 1px solid var(--border);
   }
   .header-title {
-    font-family: 'Lora', serif;
-    font-size: 1.35rem;
-    font-weight: 600;
-    color: var(--text);
-    letter-spacing: -0.01em;
+    font-family: 'Lora', serif; font-size: 1.35rem;
+    font-weight: 600; color: var(--text); letter-spacing: -0.01em;
   }
   .header-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .live-dot {
@@ -75,7 +68,7 @@
   .rbtn:hover { background: var(--surface2); color: var(--text); }
   .rbtn:disabled { opacity: 0.5; cursor: default; }
 
-  /* Editor mode */
+  /* Editor bar */
   .editor-bar {
     display: flex; align-items: center; gap: 10px;
     margin-bottom: 1rem; flex-wrap: wrap;
@@ -86,6 +79,10 @@
     font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
   }
   .editor-hint { font-size: 11px; color: var(--text3); }
+  .save-status { font-size: 11px; color: var(--text3); }
+  .save-status.saving { color: var(--gold); }
+  .save-status.saved  { color: var(--accent); }
+  .save-status.error  { color: var(--red); }
   .lock-btn {
     font-size: 11px; padding: 3px 10px; margin-left: auto;
     border: 1px solid var(--border); border-radius: 20px;
@@ -104,7 +101,7 @@
     padding: 1.75rem; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
   }
   .modal h3 { font-family: 'Lora', serif; font-size: 1.1rem; margin-bottom: 0.5rem; }
-  .modal p { font-size: 12px; color: var(--text2); margin-bottom: 1rem; }
+  .modal p  { font-size: 12px; color: var(--text2); margin-bottom: 1rem; }
   .modal input {
     width: 100%; padding: 8px 10px; border: 1px solid var(--border);
     border-radius: var(--radius); font-size: 13px; margin-bottom: 10px;
@@ -125,25 +122,12 @@
     font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif;
   }
 
-  /* FX row */
-  .fx-row {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 1.5rem; font-size: 12px; color: var(--text2); flex-wrap: wrap;
-  }
-  .fx-row input {
-    width: 84px; font-size: 12px; padding: 4px 8px;
-    border: 1px solid var(--border); border-radius: var(--radius);
-    background: var(--surface); color: var(--text);
-    font-family: 'DM Mono', monospace;
-  }
-  .fx-row input:focus { outline: none; border-color: var(--accent); }
-
   /* Metrics */
   .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 1.5rem; }
   .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.1rem; }
   .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
   .metric-value { font-family: 'DM Mono', monospace; font-size: 1.25rem; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
-  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .metric-sub   { font-size: 11px; color: var(--text3); margin-top: 3px; }
   .metric.accent-card { background: var(--accent); border-color: var(--accent2); }
   .metric.accent-card .metric-label { color: rgba(255,255,255,0.65); }
   .metric.accent-card .metric-value { color: #fff; }
@@ -156,7 +140,7 @@
   /* Section */
   .section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; }
   .section-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
-  .section-line { flex: 1; height: 1px; background: var(--border); }
+  .section-line  { flex: 1; height: 1px; background: var(--border); }
 
   /* Table */
   .tbl-wrap { overflow-x: auto; margin-bottom: 1.5rem; }
@@ -225,8 +209,8 @@
   .form-field label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 4px; }
   .form-field input, .form-field select {
     width: 100%; padding: 6px 9px; border: 1px solid var(--border);
-    border-radius: var(--radius); font-size: 13px; font-family: 'DM Sans', sans-serif;
-    background: var(--bg); color: var(--text);
+    border-radius: var(--radius); font-size: 13px;
+    font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
   }
   .form-field input:focus, .form-field select:focus { outline: none; border-color: var(--accent); }
   .form-actions { display: flex; gap: 8px; }
@@ -241,12 +225,6 @@
     border: 1px solid var(--border); border-radius: 20px;
     font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif;
   }
-
-  /* Save indicator */
-  .save-status { font-size: 11px; color: var(--text3); margin-left: auto; }
-  .save-status.saving { color: var(--gold); }
-  .save-status.saved  { color: var(--accent); }
-  .save-status.error  { color: var(--red); }
 
   .note {
     font-size: 11px; color: var(--text3); margin-top: 1.5rem;
@@ -284,6 +262,7 @@
   <div class="alloc-bar" id="allocBar"></div>
   <div id="stockSection"></div>
   <div id="bondSection"></div>
+
   <div class="actions" id="actions" style="display:none">
     <button class="add-btn" onclick="showForm('stock')">+ Add stock</button>
     <button class="add-btn" onclick="showForm('bond')">+ Add bond</button>
@@ -311,15 +290,16 @@
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const WORKER_URL = 'https://portfolio-worker.tomas-jonkus.workers.dev';
-// No EDITOR_KEY here at all
+// No editor key stored here — password is validated securely by the Worker
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let eurUsd    = 1.1707;
-let asOf      = '—';
-let isEditor  = false;
-let editing   = null;
+let eurUsd   = 1.1707;
+let asOf     = '—';
+let isEditor = false;
+let editing  = null;
 let saveTimer = null;
 
+// Default holdings — overwritten by Cloudflare KV on load
 let stocks = [
   { ticker:'TGT',   name:'Target Corp',          shares:5,       price:130.18, div:4.56, wht:0.15, ccy:'USD' },
   { ticker:'WPC',   name:'W.P. Carey',            shares:11,      price:69.25,  div:3.72, wht:0.15, ccy:'USD' },
@@ -332,7 +312,7 @@ let bonds = [
   { name:'Eleving', faceValue:200, coupon:0.13, maturity:'Oct 2028', ccy:'EUR' },
 ];
 
-const STOCK_COLORS = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400','#1b7a4a','#0d5c7a'];
+const STOCK_COLORS = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400','#1b7a4a','#0d5c7a','#5a4e2d','#2c6e7a'];
 const BOND_COLORS  = ['#7b5ea7','#9b8ec4','#4a3f6b'];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -344,8 +324,8 @@ const sym    = ccy => ccy === 'EUR' ? '€' : '$';
 const yc     = y => y < 3 ? 'yl' : y < 5 ? 'ym' : 'yh';
 const nowStr = () => {
   const d = new Date();
-  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
-       + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})
+       + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
 };
 
 // ── PERSISTENCE ───────────────────────────────────────────────────────────────
@@ -356,16 +336,12 @@ async function loadPortfolio() {
     const data = await res.json();
     if (data.stocks && data.stocks.length) stocks = data.stocks;
     if (data.bonds  && data.bonds.length)  bonds  = data.bonds;
-    if (data.eurUsd) {
-      eurUsd = data.eurUsd;
-      document.getElementById('fxInput').value = f(eurUsd, 4);
-    }
-    if (data.asOf) {
-      asOf = data.asOf;
-      document.getElementById('asOf').textContent = asOf;
-    }
-    render();
-  } catch(e) { console.warn('Could not load portfolio from worker:', e); }
+    if (data.eurUsd) eurUsd = data.eurUsd;
+    if (data.asOf)   asOf   = data.asOf;
+  } catch(e) {
+    console.warn('Could not load portfolio:', e);
+  }
+  render();
 }
 
 function scheduleSave() {
@@ -377,11 +353,13 @@ function scheduleSave() {
 
 async function savePortfolio() {
   try {
-    const payload = JSON.stringify({ stocks, bonds, eurUsd, asOf });
     const res = await fetch(`${WORKER_URL}/portfolio`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Editor-Key': window._ek },
-      body: payload
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Editor-Key': window._ek  // password held in memory only, never in source
+      },
+      body: JSON.stringify({ stocks, bonds, eurUsd, asOf })
     });
     if (res.ok) {
       setSaveStatus('saved', 'Saved ✓');
@@ -401,7 +379,7 @@ function setSaveStatus(cls, msg) {
   el.textContent = msg;
 }
 
-// ── REFRESH ───────────────────────────────────────────────────────────────────
+// ── PRICE REFRESH (Yahoo Finance, no rate limits) ─────────────────────────────
 async function refreshPrices() {
   const btn = document.getElementById('refreshBtn');
   btn.textContent = 'Refreshing…';
@@ -417,23 +395,33 @@ async function refreshPrices() {
     usdTickers.forEach(t => {
       if (data[t]) { const s = stocks.find(x => x.ticker === t); if (s) s.price = data[t]; }
     });
-    if (data.EURUSD) {
-      eurUsd = data.EURUSD;
-    }
+    if (data.EURUSD) eurUsd = data.EURUSD;
     asOf = nowStr();
     if (isEditor) scheduleSave();
-  } catch(e) { console.error('Refresh failed:', e); }
+  } catch(e) {
+    console.error('Refresh failed:', e);
+  }
   btn.textContent = '↻ Refresh';
   btn.disabled = false;
   render();
 }
 
 // ── EDITOR AUTH ───────────────────────────────────────────────────────────────
-function showLogin() { document.getElementById('loginModal').style.display = 'flex'; document.getElementById('pwInput').focus(); }
-function hideLogin() { document.getElementById('loginModal').style.display = 'none'; document.getElementById('loginErr').textContent = ''; document.getElementById('pwInput').value = ''; }
+function showLogin() {
+  document.getElementById('loginModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('pwInput').focus(), 50);
+}
+function hideLogin() {
+  document.getElementById('loginModal').style.display = 'none';
+  document.getElementById('loginErr').textContent = '';
+  document.getElementById('pwInput').value = '';
+}
 
 async function submitLogin() {
   const pw = document.getElementById('pwInput').value;
+  const btn = document.querySelector('.modal-submit');
+  btn.textContent = 'Checking…';
+  btn.disabled = true;
   try {
     const res = await fetch(`${WORKER_URL}/auth`, {
       method: 'POST',
@@ -441,9 +429,8 @@ async function submitLogin() {
       body: JSON.stringify({ key: pw })
     });
     if (res.ok) {
+      window._ek = pw; // store in memory only — gone when page closes
       isEditor = true;
-      // store the entered password in memory only (gone on page refresh)
-      window._ek = pw;
       hideLogin();
       document.getElementById('editorBar').style.display = 'flex';
       document.getElementById('editorBtn').style.display = 'none';
@@ -453,13 +440,16 @@ async function submitLogin() {
       document.getElementById('loginErr').textContent = 'Incorrect password.';
     }
   } catch(e) {
-    document.getElementById('loginErr').textContent = 'Connection error.';
+    document.getElementById('loginErr').textContent = 'Connection error. Try again.';
   }
+  btn.textContent = 'Unlock';
+  btn.disabled = false;
 }
 
 function lockEditor() {
   isEditor = false;
   editing = null;
+  window._ek = null;
   document.getElementById('editorBar').style.display = 'none';
   document.getElementById('editorBtn').style.display = '';
   document.getElementById('actions').style.display = 'none';
@@ -654,7 +644,8 @@ function render() {
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>Holding</th><th class="r">Shares</th>
+          <th>Holding</th>
+          <th class="r">Shares</th>
           <th class="r">Price${isEditor?' ✏':''}</th>
           <th class="r">Yield</th>
           <th class="r">Gross ann. income${isEditor?' ✏':''}</th>
@@ -696,7 +687,8 @@ function render() {
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>Holding</th><th class="r">—</th>
+          <th>Holding</th>
+          <th class="r">—</th>
           <th class="r">Face value${isEditor?' ✏':''}</th>
           <th class="r">Coupon</th>
           <th class="r">Annual income</th>
@@ -709,8 +701,8 @@ function render() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 asOf = new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
-render();
-loadPortfolio(); // load saved state from Cloudflare KV
+render();         // render defaults immediately so page isn't blank
+loadPortfolio();  // then overwrite with saved data from Cloudflare KV
 </script>
 </body>
 </html>
