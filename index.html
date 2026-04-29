@@ -258,13 +258,11 @@
   <div id="stockSection"></div>
   <div id="bondSection"></div>
   <div id="crowdSection"></div>
-  <div id="p2pSection"></div>
 
   <div class="actions" id="actions" style="display:none">
     <button class="add-btn" onclick="showForm('stock')">+ Add stock</button>
     <button class="add-btn" onclick="showForm('bond')">+ Add bond</button>
     <button class="add-btn" onclick="showForm('crowd')">+ Add crowdfunding</button>
-    <button class="add-btn" onclick="showForm('p2p')">+ Add P2P platform</button>
   </div>
   <div id="addForm"></div>
 
@@ -317,7 +315,6 @@ let p2p = [
 const STOCK_COLORS = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400','#1b7a4a','#0d5c7a','#5a4e2d','#2c6e7a'];
 const BOND_COLORS  = ['#7b5ea7','#9b8ec4','#4a3f6b'];
 const CROWD_COLORS = ['#2c7a4b','#4aab72','#1a5c38','#82c49a','#0f3d24'];
-const P2P_COLORS   = ['#1a6b8a','#2d9cbe','#0d4a63','#5bbad5','#0a3347'];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const toUsd      = (n, ccy) => ccy === 'EUR' ? n * eurUsd : n;
@@ -419,7 +416,6 @@ async function loadPortfolio() {
     if (data.stocks && data.stocks.length) stocks = data.stocks;
     if (data.bonds  && data.bonds.length)  bonds  = data.bonds;
     if (data.crowd  && data.crowd.length)  crowd  = data.crowd;
-    if (data.p2p    && data.p2p.length)    p2p    = data.p2p;
     if (data.eurUsd) eurUsd = data.eurUsd;
     if (data.asOf)   asOf   = data.asOf;
   } catch(e) { console.warn('Could not load portfolio:', e); }
@@ -438,7 +434,7 @@ async function savePortfolio() {
     const res = await fetch(`${WORKER_URL}/portfolio`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Editor-Key': window._ek },
-      body: JSON.stringify({ stocks, bonds, crowd, p2p, eurUsd, asOf })
+      body: JSON.stringify({ stocks, bonds, crowd, eurUsd, asOf })
     });
     if (res.ok) {
       setSaveStatus('saved', 'Saved ✓');
@@ -541,7 +537,6 @@ function commitEdit(val) {
     if (editing.type === 'stock') stocks[editing.idx][editing.field] = v;
     else if (editing.type === 'bond') bonds[editing.idx][editing.field] = v;
     else if (editing.type === 'crowd') crowd[editing.idx][editing.field] = v;
-    else if (editing.type === 'p2p') p2p[editing.idx][editing.field] = v;
     scheduleSave();
   }
   editing = null; render();
@@ -608,22 +603,10 @@ function showForm(type) {
           <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
         </div>
       </div>`;
-  } else if (type === 'p2p') {
+  } else {
     el.innerHTML = `
       <div class="add-form">
-        <h3>Add P2P lending platform</h3>
-        <div class="form-grid">
-          <div class="form-field"><label>Platform</label><input id="f-p2pname" placeholder="e.g. Mintos" /></div>
-          <div class="form-field"><label>Invested value</label><input id="f-p2pvalue" type="number" step="any" placeholder="0" /></div>
-          <div class="form-field"><label>Currency</label>
-            <select id="f-p2pccy"><option value="EUR">EUR</option><option value="USD">USD</option></select>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="form-submit" onclick="submitP2P()">Add to portfolio</button>
-          <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
-        </div>
-      </div>`;
+        <h3>Add bond</h3>
         <div class="form-grid">
           <div class="form-field"><label>Name / Issuer</label><input id="f-bname" placeholder="e.g. Eleving" /></div>
           <div class="form-field"><label>Face value</label><input id="f-fv" type="number" step="any" placeholder="0" /></div>
@@ -664,15 +647,6 @@ function submitBond() {
   document.getElementById('addForm').innerHTML = '';
   scheduleSave(); render();
 }
-function submitP2P() {
-  const platform = document.getElementById('f-p2pname').value.trim();
-  const value    = parseFloat(document.getElementById('f-p2pvalue').value);
-  const ccy      = document.getElementById('f-p2pccy').value;
-  if (!platform || isNaN(value)) { alert('Please fill in platform name and invested value.'); return; }
-  p2p.push({ platform, value, ccy });
-  document.getElementById('addForm').innerHTML = '';
-  scheduleSave(); render();
-}
 function submitCrowd() {
   const name     = document.getElementById('f-cname').value.trim();
   const platform = document.getElementById('f-platform').value.trim();
@@ -692,8 +666,7 @@ function render() {
   const svU = stocks.reduce((s,h) => s + toUsd(h.shares * h.price, h.ccy), 0);
   const bvU = bonds.reduce((s,b)  => s + toUsd(b.faceValue, b.ccy), 0);
   const cvU = crowd.reduce((s,c)  => s + toUsd(c.value, c.ccy), 0);
-  const pvU = p2p.reduce((s,p)   => s + toUsd(p.value, p.ccy), 0);
-  const tvU = svU + bvU + cvU + pvU;
+  const tvU = svU + bvU + cvU;
   const siU = stocks.reduce((s,h) => s + toUsd(h.shares * netDiv(h), h.ccy), 0);
   const biU = bonds.reduce((s,b)  => s + toUsd(b.faceValue * b.coupon, b.ccy), 0);
   const tiU = siU + biU;
@@ -703,7 +676,6 @@ function render() {
   const svE = usdToEur(svU);
   const bvE = usdToEur(bvU);
   const cvE = usdToEur(cvU);
-  const pvE = usdToEur(pvU);
   const tiE = usdToEur(tiU);
   const siE = usdToEur(siU);
   const biE = usdToEur(biU);
@@ -723,7 +695,7 @@ function render() {
       <div class="metric-label">Portfolio value</div>
       <div class="metric-value">${fE(tvE)}</div>
       <div class="metric-sub">${fD(tvU)}</div>
-      <div class="metric-sub2">stocks ${fE(svE)} · bonds ${fE(bvE)}${cvE > 0 ? ' · RE ' + fE(cvE) : ''}${pvE > 0 ? ' · P2P ' + fE(pvE) : ''}</div>
+      <div class="metric-sub2">stocks ${fE(svE)} · bonds ${fE(bvE)}${cvE > 0 ? ' · RE ' + fE(cvE) : ''}</div>
     </div>
     <div class="metric accent-card">
       <div class="metric-label">Net annual income</div>
@@ -749,8 +721,7 @@ function render() {
   const segs = [
     ...stocks.map((h,i) => ({ v: toUsd(h.shares*h.price,h.ccy), c: STOCK_COLORS[i%STOCK_COLORS.length] })),
     ...bonds.map((b,i)  => ({ v: toUsd(b.faceValue,b.ccy),       c: BOND_COLORS[i%BOND_COLORS.length]  })),
-    ...crowd.map((c,i)  => ({ v: toUsd(c.value,c.ccy),  c: CROWD_COLORS[i%CROWD_COLORS.length]})),
-    ...p2p.map((p,i)    => ({ v: toUsd(p.value,p.ccy),  c: P2P_COLORS[i%P2P_COLORS.length]})),
+    ...crowd.map((c,i)  => ({ v: toUsd(c.value,c.ccy),            c: CROWD_COLORS[i%CROWD_COLORS.length]})),
   ];
   document.getElementById('allocBar').innerHTML = segs
     .map(s => `<div class="alloc-seg" style="width:${f(tvU>0?s.v/tvU*100:0,2)}%;background:${s.c}"></div>`)
@@ -901,42 +872,6 @@ function render() {
           <th></th>
         </tr></thead>
         <tbody>${cRows}${crowd.length===0?'<tr><td colspan="7" style="color:var(--text3);font-size:12px;padding:12px 10px;">No positions yet — click + Add crowdfunding above</td></tr>':''}</tbody>
-      </table>
-    </div>`;
-
-  // P2P rows
-  const pRows = p2p.map((p,i) => {
-    const uv  = toUsd(p.value, p.ccy);
-    const ev  = p.ccy === 'EUR' ? p.value : usdToEur(uv);
-    const pct = tvU > 0 ? (uv / tvU * 100) : 0;
-    const rmBtn = isEditor
-      ? `<button class="rm-btn" onclick="p2p.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
-      : '';
-    return `<tr>
-      <td>
-        <div class="ticker" style="color:${P2P_COLORS[i%P2P_COLORS.length]}">${p.platform}<span class="ccy-tag">${p.ccy}</span></div>
-        <div class="co-name">P2P lending</div>
-      </td>
-      <td class="r">
-        ${editableCell('p2p',i,'value',p.value,sym(p.ccy)+f(p.value,0))}
-        <div class="val-sub">${fE(ev)} · ${f(pct,1)}%</div>
-      </td>
-      <td class="r"><span class="val-sub">income not tracked</span></td>
-      <td class="c">${rmBtn}</td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('p2pSection').innerHTML = p2p.length === 0 && !isEditor ? '' : `
-    <div class="section-head"><span class="section-label">P2P Lending</span><div class="section-line"></div></div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>Platform</th>
-          <th class="r">Invested${isEditor?' ✏':''}</th>
-          <th class="r">Income</th>
-          <th></th>
-        </tr></thead>
-        <tbody>${pRows}${p2p.length===0?'<tr><td colspan="4" style="color:var(--text3);font-size:12px;padding:12px 10px;">No platforms yet — click + Add P2P platform above</td></tr>':''}</tbody>
       </table>
     </div>`;
 }
