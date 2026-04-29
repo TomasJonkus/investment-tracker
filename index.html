@@ -673,6 +673,7 @@ function submitP2P() {
   document.getElementById('addForm').innerHTML = '';
   scheduleSave(); render();
 }
+function submitCrowd() {
   const name     = document.getElementById('f-cname').value.trim();
   const platform = document.getElementById('f-platform').value.trim();
   const value    = parseFloat(document.getElementById('f-cvalue').value);
