@@ -140,7 +140,6 @@ tr:hover .edit-icon { opacity:.6; }
     <div class="header-meta">
       <span class="live-dot">live prices</span>
       <span class="as-of" id="asOf">loading…</span>
-      <span class="as-of" style="color:var(--text3)"> · auto-updates daily</span>
       <button class="rbtn" id="refreshBtn" onclick="refreshPrices()">↻ Refresh</button>
       <button class="rbtn" id="editorBtn" onclick="showLogin()" style="border-color:var(--gold);color:var(--gold)">🔒 Editor</button>
     </div>
@@ -159,12 +158,14 @@ tr:hover .edit-icon { opacity:.6; }
   <div id="bondSection"></div>
   <div id="crowdSection"></div>
   <div id="p2pSection"></div>
+  <div id="rentalSection"></div>
 
   <div class="actions" id="actions" style="display:none">
     <button class="add-btn" onclick="showForm('stock')">+ Add stock</button>
     <button class="add-btn" onclick="showForm('bond')">+ Add bond</button>
     <button class="add-btn" onclick="showForm('crowd')">+ Add crowdfunding</button>
     <button class="add-btn" onclick="showForm('p2p')">+ Add P2P platform</button>
+    <button class="add-btn" onclick="showForm('rental')">+ Add rental income</button>
   </div>
   <div id="addForm"></div>
 
@@ -213,11 +214,15 @@ let p2p = [
   { platform:'Savy',   value:779, ccy:'EUR' },
   { platform:'Mintos', value:340, ccy:'EUR' },
 ];
+let rental = [
+  { platform:'Mintos', value:200, monthlyIncome:0.91, ccy:'EUR' },
+];
 
 const SC = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400','#1b7a4a','#0d5c7a','#5a4e2d','#2c6e7a'];
 const BC = ['#7b5ea7','#9b8ec4','#4a3f6b'];
 const CC = ['#2c7a4b','#4aab72','#1a5c38','#82c49a','#0f3d24'];
 const PC = ['#1a6b8a','#2d9cbe','#0d4a63','#5bbad5','#0a3347'];
+const RC = ['#7a4b2c','#be7d2d','#633d0d','#d5a55b','#472b0a'];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const toUsd    = (n,ccy) => ccy === 'EUR' ? n * eurUsd : n;
@@ -296,6 +301,7 @@ async function loadPortfolio() {
     if (data.bonds  && data.bonds.length)  bonds  = data.bonds;
     if (data.crowd  && data.crowd.length)  crowd  = data.crowd;
     if (data.p2p    && data.p2p.length)    p2p    = data.p2p;
+    if (data.rental && data.rental.length) rental = data.rental;
     if (data.eurUsd) eurUsd = data.eurUsd;
     if (data.asOf)   asOf   = data.asOf;
   } catch(e) { console.warn('Could not load portfolio:', e); }
@@ -314,7 +320,7 @@ async function savePortfolio() {
     const res = await fetch(WORKER_URL + '/portfolio', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'X-Editor-Key': window._ek },
-      body: JSON.stringify({ stocks, bonds, crowd, p2p, eurUsd, asOf })
+      body: JSON.stringify({ stocks, bonds, crowd, p2p, rental, eurUsd, asOf })
     });
     if (res.ok) {
       setSaveStatus('saved','Saved ✓');
@@ -419,7 +425,8 @@ function commitEdit(val) {
     if      (editing.type === 'stock') stocks[editing.idx][editing.field] = v;
     else if (editing.type === 'bond')  bonds[editing.idx][editing.field]  = v;
     else if (editing.type === 'crowd') crowd[editing.idx][editing.field]  = v;
-    else if (editing.type === 'p2p')   p2p[editing.idx][editing.field]    = v;
+    else if (editing.type === 'p2p')    p2p[editing.idx][editing.field]    = v;
+    else if (editing.type === 'rental') rental[editing.idx][editing.field] = v;
     scheduleSave();
   }
   editing = null; render();
@@ -492,9 +499,29 @@ function showForm(type) {
       '<button class="form-submit" onclick="submitP2P()">Add to portfolio</button>' +
       '<button class="form-cancel" onclick="document.getElementById(\'addForm\').innerHTML=\'\'">Cancel</button>' +
       '</div></div>';
+  } else if (type === 'rental') {
+    el.innerHTML = '<div class="add-form"><h3>Add rental income (crowdfunding)</h3><div class="form-grid">' +
+      '<div class="form-field"><label>Platform</label><input id="f-rname" placeholder="e.g. Mintos"></div>' +
+      '<div class="form-field"><label>Invested value</label><input id="f-rvalue" type="number" step="any" placeholder="0"></div>' +
+      '<div class="form-field"><label>Monthly net income</label><input id="f-rincome" type="number" step="0.01" placeholder="0.00"></div>' +
+      '<div class="form-field"><label>Currency</label><select id="f-rccy"><option value="EUR">EUR</option><option value="USD">USD</option></select></div>' +
+      '</div><div class="form-actions">' +
+      '<button class="form-submit" onclick="submitRental()">Add to portfolio</button>' +
+      '<button class="form-cancel" onclick="document.getElementById(\'addForm\').innerHTML=\'\'">Cancel</button>' +
+      '</div></div>';
   }
 }
 
+function submitRental() {
+  const platform      = document.getElementById('f-rname').value.trim();
+  const value         = parseFloat(document.getElementById('f-rvalue').value);
+  const monthlyIncome = parseFloat(document.getElementById('f-rincome').value);
+  const ccy           = document.getElementById('f-rccy').value;
+  if (!platform || isNaN(value)) { alert('Please fill in platform and invested value.'); return; }
+  rental.push({ platform, value, monthlyIncome: isNaN(monthlyIncome) ? 0 : monthlyIncome, ccy });
+  document.getElementById('addForm').innerHTML = '';
+  scheduleSave(); render();
+}
 function submitStock() {
   const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
   const name   = document.getElementById('f-name').value.trim();
@@ -548,15 +575,17 @@ function render() {
   const bvU = bonds.reduce((s,b)  => s + toUsd(b.faceValue, b.ccy), 0);
   const cvU = crowd.reduce((s,c)  => s + toUsd(c.value, c.ccy), 0);
   const pvU = p2p.reduce((s,p)    => s + toUsd(p.value, p.ccy), 0);
-  const tvU = svU + bvU + cvU + pvU;
+  const rvU = rental.reduce((s,r) => s + toUsd(r.value, r.ccy), 0);
+  const tvU = svU + bvU + cvU + pvU + rvU;
   const siU = stocks.reduce((s,h) => s + toUsd(h.shares * netDiv(h), h.ccy), 0);
   const biU = bonds.reduce((s,b)  => s + toUsd(b.faceValue * b.coupon, b.ccy), 0);
-  const tiU = siU + biU;
+  const riU = rental.reduce((s,r) => s + toUsd(r.monthlyIncome * 12, r.ccy), 0);
+  const tiU = siU + biU + riU;
 
   // EUR equivalents
   const tvE = toEur(tvU), svE = toEur(svU), bvE = toEur(bvU);
-  const cvE = toEur(cvU), pvE = toEur(pvU);
-  const tiE = toEur(tiU), siE = toEur(siU), biE = toEur(biU);
+  const cvE = toEur(cvU), pvE = toEur(pvU), rvE = toEur(rvU);
+  const tiE = toEur(tiU), siE = toEur(siU), biE = toEur(biU), riE = toEur(riU);
 
   document.getElementById('asOf').textContent = asOf;
 
@@ -571,6 +600,7 @@ function render() {
   let sub2 = 'stocks ' + fE(svE) + ' · bonds ' + fE(bvE);
   if (cvE > 0) sub2 += ' · RE ' + fE(cvE);
   if (pvE > 0) sub2 += ' · P2P ' + fE(pvE);
+  if (rvE > 0) sub2 += ' · Rental ' + fE(rvE);
 
   document.getElementById('metrics').innerHTML =
     '<div class="metric">' +
@@ -604,7 +634,8 @@ function render() {
     ...stocks.map((h,i) => ({ v:toUsd(h.shares*h.price,h.ccy), c:SC[i%SC.length] })),
     ...bonds.map((b,i)  => ({ v:toUsd(b.faceValue,b.ccy),       c:BC[i%BC.length] })),
     ...crowd.map((c,i)  => ({ v:toUsd(c.value,c.ccy),            c:CC[i%CC.length] })),
-    ...p2p.map((p,i)    => ({ v:toUsd(p.value,p.ccy),            c:PC[i%PC.length] })),
+    ...p2p.map((p,i)    => ({ v:toUsd(p.value,p.ccy),    c:PC[i%PC.length] })),
+    ...rental.map((r,i) => ({ v:toUsd(r.value,r.ccy),    c:RC[i%RC.length] })),
   ];
   document.getElementById('allocBar').innerHTML = segs
     .map(s => '<div class="alloc-seg" style="width:' + f(tvU>0?s.v/tvU*100:0,2) + '%;background:' + s.c + '"></div>')
@@ -714,6 +745,31 @@ function render() {
       '<tbody>' + pRows + empty + '</tbody></table></div>';
   } else {
     document.getElementById('p2pSection').innerHTML = '';
+  }
+
+  // ── RENTAL INCOME ──
+  if (rental.length > 0 || isEditor) {
+    const rRows = rental.map((r,i) => {
+      const uv      = toUsd(r.value, r.ccy);
+      const ev      = r.ccy === 'EUR' ? r.value : toEur(uv);
+      const pct     = tvU > 0 ? (uv / tvU * 100) : 0;
+      const annInc  = r.monthlyIncome * 12;
+      const rm      = isEditor ? '<button class="rm-btn" onclick="rental.splice('+i+',1);scheduleSave();render()" title="Remove">×</button>' : '';
+      return '<tr>' +
+        '<td><div class="ticker" style="color:'+RC[i%RC.length]+'">'+r.platform+'<span class="ccy-tag">'+r.ccy+'</span></div><div class="co-name">Rental income crowdfunding</div></td>' +
+        '<td class="r">'+editCell('rental',i,'value',r.value,sym(r.ccy)+f(r.value,0))+'<div class="val-sub">'+fE(ev)+' · '+f(pct,1)+'%</div></td>' +
+        '<td class="r">'+editCell('rental',i,'monthlyIncome',r.monthlyIncome,sym(r.ccy)+f(r.monthlyIncome,2)+'/mo')+'<div class="val-sub">'+sym(r.ccy)+f(annInc,2)+'/yr</div></td>' +
+        '<td class="c">'+rm+'</td>' +
+        '</tr>';
+    }).join('');
+    const empty = rental.length === 0 ? '<tr><td colspan="4" style="color:var(--text3);font-size:12px;padding:12px 10px;">No entries yet</td></tr>' : '';
+    document.getElementById('rentalSection').innerHTML =
+      '<div class="section-head"><span class="section-label">Rental Income (Crowdfunding)</span><div class="section-line"></div></div>' +
+      '<div class="tbl-wrap"><table>' +
+      '<thead><tr><th>Platform</th><th class="r">Invested'+(isEditor?' ✏':'')+'</th><th class="r">Monthly income'+(isEditor?' ✏':'')+'</th><th></th></tr></thead>' +
+      '<tbody>' + rRows + empty + '</tbody></table></div>';
+  } else {
+    document.getElementById('rentalSection').innerHTML = '';
   }
 }
 
