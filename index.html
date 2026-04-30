@@ -6,231 +6,130 @@
 <title>Broke Investor – Portfolio Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Lora:wght@400;600&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#faf9f6; --surface:#ffffff; --surface2:#f3f1ec;
+  --border:#e2ddd6; --border2:#cdc8bf;
+  --text:#1a1814; --text2:#6b6660; --text3:#9e9890;
+  --accent:#2d6a4f; --accent2:#1b4332;
+  --gold:#b5843a; --gold-bg:#fdf3e0;
+  --red:#c0392b; --red-bg:#fdecea;
+  --radius:8px; --radius-lg:12px;
+}
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); font-size:14px; line-height:1.6; padding:2rem 1rem; }
+.tracker { max-width:880px; margin:0 auto; }
 
-  :root {
-    --bg:        #faf9f6;
-    --surface:   #ffffff;
-    --surface2:  #f3f1ec;
-    --border:    #e2ddd6;
-    --border2:   #cdc8bf;
-    --text:      #1a1814;
-    --text2:     #6b6660;
-    --text3:     #9e9890;
-    --accent:    #2d6a4f;
-    --accent2:   #1b4332;
-    --gold:      #b5843a;
-    --gold-bg:   #fdf3e0;
-    --red:       #c0392b;
-    --red-bg:    #fdecea;
-    --radius:    8px;
-    --radius-lg: 12px;
-  }
+/* Header */
+.header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:.5rem; margin-bottom:1.75rem; padding-bottom:1rem; border-bottom:1px solid var(--border); }
+.header-title { font-family:'Lora',serif; font-size:1.35rem; font-weight:600; letter-spacing:-.01em; }
+.header-meta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.live-dot { display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--accent); font-weight:500; }
+.live-dot::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--accent); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.as-of { font-size:11px; color:var(--text3); }
+.rbtn { font-size:11px; padding:4px 10px; border:1px solid var(--border2); border-radius:20px; background:var(--surface); color:var(--text2); cursor:pointer; transition:all .15s; }
+.rbtn:hover { background:var(--surface2); color:var(--text); }
+.rbtn:disabled { opacity:.5; cursor:default; }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 14px;
-    line-height: 1.6;
-    padding: 2rem 1rem;
-  }
+/* Editor bar */
+.editor-bar { display:flex; align-items:center; gap:10px; margin-bottom:1rem; flex-wrap:wrap; }
+.editor-badge { font-size:10px; padding:3px 8px; border-radius:20px; background:var(--gold-bg); color:var(--gold); font-weight:500; letter-spacing:.05em; text-transform:uppercase; }
+.editor-hint { font-size:11px; color:var(--text3); }
+.save-status { font-size:11px; color:var(--text3); }
+.save-status.saving { color:var(--gold); }
+.save-status.saved  { color:var(--accent); }
+.save-status.error  { color:var(--red); }
+.lock-btn { font-size:11px; padding:3px 10px; margin-left:auto; border:1px solid var(--border); border-radius:20px; background:transparent; color:var(--text2); cursor:pointer; }
+.lock-btn:hover { background:var(--red-bg); color:var(--red); border-color:var(--red); }
 
-  .tracker { max-width: 880px; margin: 0 auto; }
+/* Modal */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); display:flex; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(2px); }
+.modal { background:var(--surface); border-radius:var(--radius-lg); padding:1.75rem; width:320px; box-shadow:0 8px 32px rgba(0,0,0,.12); }
+.modal h3 { font-family:'Lora',serif; font-size:1.1rem; margin-bottom:.5rem; }
+.modal p  { font-size:12px; color:var(--text2); margin-bottom:1rem; }
+.modal input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius); font-size:13px; margin-bottom:10px; font-family:'DM Mono',monospace; background:var(--bg); color:var(--text); }
+.modal input:focus { outline:none; border-color:var(--accent); }
+.modal-err { font-size:12px; color:var(--red); margin-bottom:8px; min-height:16px; }
+.modal-actions { display:flex; gap:8px; }
+.modal-submit { flex:1; padding:8px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.modal-submit:hover { background:var(--accent2); }
+.modal-cancel { padding:8px 14px; background:none; color:var(--text2); border:1px solid var(--border); border-radius:20px; font-size:13px; cursor:pointer; font-family:'DM Sans',sans-serif; }
 
-  .header {
-    display: flex; align-items: baseline; justify-content: space-between;
-    flex-wrap: wrap; gap: 0.5rem;
-    margin-bottom: 1.75rem; padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border);
-  }
-  .header-title {
-    font-family: 'Lora', serif; font-size: 1.35rem;
-    font-weight: 600; color: var(--text); letter-spacing: -0.01em;
-  }
-  .header-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .live-dot {
-    display: inline-flex; align-items: center; gap: 5px;
-    font-size: 11px; color: var(--accent); font-weight: 500;
-  }
-  .live-dot::before {
-    content: ''; width: 7px; height: 7px; border-radius: 50%;
-    background: var(--accent); animation: pulse 2s infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
-  .as-of { font-size: 11px; color: var(--text3); }
-  .rbtn {
-    font-size: 11px; padding: 4px 10px;
-    border: 1px solid var(--border2); border-radius: 20px;
-    background: var(--surface); color: var(--text2); cursor: pointer; transition: all 0.15s;
-  }
-  .rbtn:hover { background: var(--surface2); color: var(--text); }
-  .rbtn:disabled { opacity: 0.5; cursor: default; }
+/* Metrics */
+.metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:1.5rem; }
+.metric { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.1rem; }
+.metric.clickable { cursor:pointer; user-select:none; transition:all .15s; }
+.metric.clickable:hover { border-color:var(--border2); background:var(--surface2); }
+.metric-label { font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+.metric-value { font-family:'DM Mono',monospace; font-size:1.25rem; font-weight:500; letter-spacing:-.02em; }
+.metric-sub  { font-size:11px; color:var(--text3); margin-top:2px; }
+.metric-sub2 { font-size:10px; color:var(--text3); margin-top:2px; }
+.toggle-hint { font-size:9px; color:var(--text3); margin-top:5px; }
+.metric.accent-card { background:var(--accent); border-color:var(--accent2); }
+.metric.accent-card .metric-label,.metric.accent-card .toggle-hint { color:rgba(255,255,255,.55); }
+.metric.accent-card .metric-value { color:#fff; }
+.metric.accent-card .metric-sub  { color:rgba(255,255,255,.6); }
+.metric.accent-card .metric-sub2 { color:rgba(255,255,255,.45); }
 
-  .editor-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap; }
-  .editor-badge {
-    font-size: 10px; padding: 3px 8px; border-radius: 20px;
-    background: var(--gold-bg); color: var(--gold);
-    font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;
-  }
-  .editor-hint { font-size: 11px; color: var(--text3); }
-  .save-status { font-size: 11px; color: var(--text3); }
-  .save-status.saving { color: var(--gold); }
-  .save-status.saved  { color: var(--accent); }
-  .save-status.error  { color: var(--red); }
-  .lock-btn {
-    font-size: 11px; padding: 3px 10px; margin-left: auto;
-    border: 1px solid var(--border); border-radius: 20px;
-    background: transparent; color: var(--text2); cursor: pointer;
-  }
-  .lock-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+/* Alloc bar */
+.alloc-bar { display:flex; height:5px; border-radius:3px; overflow:hidden; gap:2px; margin-bottom:1.75rem; }
+.alloc-seg { height:100%; border-radius:2px; transition:width .4s; }
 
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.35);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000; backdrop-filter: blur(2px);
-  }
-  .modal {
-    background: var(--surface); border-radius: var(--radius-lg);
-    padding: 1.75rem; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  }
-  .modal h3 { font-family: 'Lora', serif; font-size: 1.1rem; margin-bottom: 0.5rem; }
-  .modal p  { font-size: 12px; color: var(--text2); margin-bottom: 1rem; }
-  .modal input {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
-    border-radius: var(--radius); font-size: 13px; margin-bottom: 10px;
-    font-family: 'DM Mono', monospace; background: var(--bg); color: var(--text);
-  }
-  .modal input:focus { outline: none; border-color: var(--accent); }
-  .modal-err { font-size: 12px; color: var(--red); margin-bottom: 8px; min-height: 16px; }
-  .modal-actions { display: flex; gap: 8px; }
-  .modal-submit {
-    flex: 1; padding: 8px; background: var(--accent); color: #fff;
-    border: none; border-radius: 20px; font-size: 13px; cursor: pointer;
-    font-family: 'DM Sans', sans-serif; transition: background 0.15s;
-  }
-  .modal-submit:hover { background: var(--accent2); }
-  .modal-cancel {
-    padding: 8px 14px; background: none; color: var(--text2);
-    border: 1px solid var(--border); border-radius: 20px;
-    font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif;
-  }
+/* Section */
+.section-head { display:flex; align-items:center; gap:10px; margin-bottom:.5rem; }
+.section-label { font-size:10px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--text3); }
+.section-line  { flex:1; height:1px; background:var(--border); }
 
-  /* Metrics */
-  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 1.5rem; }
-  .metric {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-lg); padding: 1rem 1.1rem;
-  }
-  .metric.clickable { cursor: pointer; user-select: none; transition: all 0.15s; }
-  .metric.clickable:hover { border-color: var(--border2); background: var(--surface2); }
-  .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
-  .metric-value { font-family: 'DM Mono', monospace; font-size: 1.25rem; font-weight: 500; color: var(--text); letter-spacing: -0.02em; }
-  .metric-sub  { font-size: 11px; color: var(--text3); margin-top: 2px; }
-  .metric-sub2 { font-size: 10px; color: var(--text3); margin-top: 2px; }
-  .metric.accent-card { background: var(--accent); border-color: var(--accent2); }
-  .metric.accent-card .metric-label { color: rgba(255,255,255,0.65); }
-  .metric.accent-card .metric-value { color: #fff; }
-  .metric.accent-card .metric-sub  { color: rgba(255,255,255,0.55); }
-  .metric.accent-card .metric-sub2 { color: rgba(255,255,255,0.45); }
-  .toggle-hint { font-size: 9px; color: var(--text3); margin-top: 5px; letter-spacing: 0.03em; }
+/* Table */
+.tbl-wrap { overflow-x:auto; margin-bottom:1.5rem; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead th { font-size:10px; font-weight:500; color:var(--text3); text-transform:uppercase; letter-spacing:.07em; text-align:left; padding:6px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+tbody td { padding:10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover td { background:var(--surface2); }
+.r { text-align:right; }
+.c { text-align:center; }
+.ticker { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; }
+.co-name { font-size:11px; color:var(--text3); margin-top:1px; }
+.ccy-tag { display:inline-block; font-size:9px; padding:1px 5px; border-radius:3px; background:var(--surface2); color:var(--text3); margin-left:4px; font-family:'DM Mono',monospace; vertical-align:middle; }
+.yield-pill { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:500; font-family:'DM Mono',monospace; }
+.yl { background:#e8f5e9; color:#2e7d32; }
+.ym { background:var(--gold-bg); color:var(--gold); }
+.yh { background:var(--red-bg); color:var(--red); }
+.val-primary { font-family:'DM Mono',monospace; font-size:12px; }
+.val-sub { font-size:10px; color:var(--text3); margin-top:1px; }
+.editable { display:inline-flex; align-items:center; gap:4px; }
+.edit-icon { cursor:pointer; color:var(--text3); font-size:11px; opacity:0; transition:opacity .15s; user-select:none; padding:2px; }
+tr:hover .edit-icon { opacity:.6; }
+.edit-icon:hover { opacity:1!important; color:var(--accent); }
+.edit-input { font-family:'DM Mono',monospace; font-size:12px; width:80px; padding:3px 6px; border:1px solid var(--accent); border-radius:4px; background:var(--surface); color:var(--text); outline:none; }
+.rm-btn { background:none; border:none; cursor:pointer; color:var(--text3); font-size:16px; padding:2px 4px; border-radius:4px; transition:all .15s; line-height:1; }
+.rm-btn:hover { color:var(--red); background:var(--red-bg); }
 
-  .alloc-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; gap: 2px; margin-bottom: 1.75rem; }
-  .alloc-seg { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
+/* Actions */
+.actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:.25rem; }
+.add-btn { font-size:12px; padding:7px 16px; border:1px solid var(--border2); border-radius:20px; background:var(--surface); color:var(--text2); cursor:pointer; transition:all .15s; font-family:'DM Sans',sans-serif; }
+.add-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
 
-  .section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 0.5rem; }
-  .section-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); }
-  .section-line  { flex: 1; height: 1px; background: var(--border); }
+/* Add form */
+.add-form { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:1.25rem; margin-top:1rem; }
+.add-form h3 { font-family:'Lora',serif; font-size:.95rem; margin-bottom:1rem; }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:1rem; }
+.form-field label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); margin-bottom:4px; }
+.form-field input,.form-field select { width:100%; padding:6px 9px; border:1px solid var(--border); border-radius:var(--radius); font-size:13px; font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); }
+.form-field input:focus,.form-field select:focus { outline:none; border-color:var(--accent); }
+.form-actions { display:flex; gap:8px; }
+.form-submit { padding:7px 18px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.form-submit:hover { background:var(--accent2); }
+.form-cancel { padding:7px 14px; background:none; color:var(--text2); border:1px solid var(--border); border-radius:20px; font-size:12px; cursor:pointer; font-family:'DM Sans',sans-serif; }
 
-  .tbl-wrap { overflow-x: auto; margin-bottom: 1.5rem; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead th {
-    font-size: 10px; font-weight: 500; color: var(--text3);
-    text-transform: uppercase; letter-spacing: 0.07em;
-    text-align: left; padding: 6px 10px;
-    border-bottom: 1px solid var(--border); white-space: nowrap;
-  }
-  tbody td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: var(--surface2); }
-  .r { text-align: right; }
-  .c { text-align: center; }
+.note { font-size:11px; color:var(--text3); margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border); }
 
-  .ticker { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; }
-  .co-name { font-size: 11px; color: var(--text3); margin-top: 1px; }
-  .ccy-tag {
-    display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px;
-    background: var(--surface2); color: var(--text3); margin-left: 4px;
-    font-family: 'DM Mono', monospace; vertical-align: middle;
-  }
-  .yield-pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; font-family: 'DM Mono', monospace; }
-  .yl { background: #e8f5e9; color: #2e7d32; }
-  .ym { background: var(--gold-bg); color: var(--gold); }
-  .yh { background: var(--red-bg); color: var(--red); }
-
-  .val-primary { font-family: 'DM Mono', monospace; font-size: 12px; }
-  .val-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
-
-  .editable { position: relative; display: inline-flex; align-items: center; gap: 4px; }
-  .edit-icon { cursor: pointer; color: var(--text3); font-size: 11px; opacity: 0; transition: opacity 0.15s; user-select: none; padding: 2px; }
-  tr:hover .edit-icon { opacity: 0.6; }
-  .edit-icon:hover { opacity: 1 !important; color: var(--accent); }
-  .edit-input {
-    font-family: 'DM Mono', monospace; font-size: 12px; width: 80px;
-    padding: 3px 6px; border: 1px solid var(--accent);
-    border-radius: 4px; background: var(--surface); color: var(--text); outline: none;
-  }
-
-  .rm-btn {
-    background: none; border: none; cursor: pointer; color: var(--text3);
-    font-size: 16px; padding: 2px 4px; border-radius: 4px; transition: all 0.15s; line-height: 1;
-  }
-  .rm-btn:hover { color: var(--red); background: var(--red-bg); }
-
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 0.25rem; }
-  .add-btn {
-    font-size: 12px; padding: 7px 16px; border: 1px solid var(--border2);
-    border-radius: 20px; background: var(--surface); color: var(--text2);
-    cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
-  }
-  .add-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-
-  .add-form {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-lg); padding: 1.25rem; margin-top: 1rem;
-  }
-  .add-form h3 { font-family: 'Lora', serif; font-size: 0.95rem; margin-bottom: 1rem; color: var(--text); }
-  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin-bottom: 1rem; }
-  .form-field label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 4px; }
-  .form-field input, .form-field select {
-    width: 100%; padding: 6px 9px; border: 1px solid var(--border);
-    border-radius: var(--radius); font-size: 13px;
-    font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
-  }
-  .form-field input:focus, .form-field select:focus { outline: none; border-color: var(--accent); }
-  .form-actions { display: flex; gap: 8px; }
-  .form-submit {
-    padding: 7px 18px; background: var(--accent); color: #fff; border: none;
-    border-radius: 20px; font-size: 12px; cursor: pointer;
-    font-family: 'DM Sans', sans-serif; transition: background 0.15s;
-  }
-  .form-submit:hover { background: var(--accent2); }
-  .form-cancel {
-    padding: 7px 14px; background: none; color: var(--text2);
-    border: 1px solid var(--border); border-radius: 20px;
-    font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif;
-  }
-
-  .note {
-    font-size: 11px; color: var(--text3); margin-top: 1.5rem;
-    padding-top: 1rem; border-top: 1px solid var(--border);
-  }
-
-  @media (max-width: 600px) {
-    body { padding: 1rem 0.5rem; }
-    .metric-value { font-size: 1.05rem; }
-    thead th:nth-child(2), tbody td:nth-child(2) { display: none; }
-  }
+@media(max-width:600px){
+  body { padding:1rem .5rem; }
+  .metric-value { font-size:1.05rem; }
+  thead th:nth-child(2),tbody td:nth-child(2) { display:none; }
+}
 </style>
 </head>
 <body>
@@ -258,11 +157,13 @@
   <div id="stockSection"></div>
   <div id="bondSection"></div>
   <div id="crowdSection"></div>
+  <div id="p2pSection"></div>
 
   <div class="actions" id="actions" style="display:none">
     <button class="add-btn" onclick="showForm('stock')">+ Add stock</button>
     <button class="add-btn" onclick="showForm('bond')">+ Add bond</button>
     <button class="add-btn" onclick="showForm('crowd')">+ Add crowdfunding</button>
+    <button class="add-btn" onclick="showForm('p2p')">+ Add P2P platform</button>
   </div>
   <div id="addForm"></div>
 
@@ -270,8 +171,7 @@
     <div class="modal">
       <h3>Editor login</h3>
       <p>Enter your editor password to add or modify holdings.</p>
-      <input type="password" id="pwInput" placeholder="Password"
-        onkeydown="if(event.key==='Enter')submitLogin()" />
+      <input type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')submitLogin()">
       <div class="modal-err" id="loginErr"></div>
       <div class="modal-actions">
         <button class="modal-submit" onclick="submitLogin()">Unlock</button>
@@ -280,19 +180,22 @@
     </div>
   </div>
 
-  <p class="note">Stock prices and EUR/USD rate refresh via the ↻ Refresh button. Nasdaq Baltic prices (TEL1L, IGN1L) may need manual correction in editor mode — click ✏ to edit. Net income shown after 15% withholding tax on dividends.</p>
+  <p class="note">Stock prices and EUR/USD rate refresh via the ↻ Refresh button. Nasdaq Baltic prices (TEL1L, IGN1L) may need manual correction — click ✏ in editor mode. Net income shown after 15% withholding tax on dividends.</p>
 </div>
 
 <script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
 const WORKER_URL = 'https://portfolio-worker.tomas-jonkus.workers.dev';
 
+// ── STATE ─────────────────────────────────────────────────────────────────────
 let eurUsd     = 1.1707;
 let asOf       = '—';
 let isEditor   = false;
 let editing    = null;
 let saveTimer  = null;
-let incomeView = 'stock'; // toggles between 'stock' and 'bond' on the 4th card
+let incomeView = 'stock';
 
+// Default data — overwritten by KV on load
 let stocks = [
   { ticker:'TGT',   name:'Target Corp',          shares:5,       price:130.18, div:4.56, wht:0.15, ccy:'USD' },
   { ticker:'WPC',   name:'W.P. Carey',            shares:11,      price:69.25,  div:3.72, wht:0.15, ccy:'USD' },
@@ -304,43 +207,37 @@ let stocks = [
 let bonds = [
   { name:'Eleving', faceValue:200, coupon:0.13, maturity:'Oct 2028', ccy:'EUR' },
 ];
-let crowd = [
-  // { name:'Example Project', platform:'Estateguru', value:500, rate:0.10, maturity:'2027-12-31', ccy:'EUR' },
-];
+let crowd = [];
 let p2p = [
-  { platform:'Savy',  value:779, ccy:'EUR' },
+  { platform:'Savy',   value:779, ccy:'EUR' },
   { platform:'Mintos', value:340, ccy:'EUR' },
 ];
 
-const STOCK_COLORS = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400','#1b7a4a','#0d5c7a','#5a4e2d','#2c6e7a'];
-const BOND_COLORS  = ['#7b5ea7','#9b8ec4','#4a3f6b'];
-const CROWD_COLORS = ['#2c7a4b','#4aab72','#1a5c38','#82c49a','#0f3d24'];
+const SC = ['#2d6a4f','#1a759f','#b5843a','#c0392b','#7b5ea7','#d35400','#1b7a4a','#0d5c7a','#5a4e2d','#2c6e7a'];
+const BC = ['#7b5ea7','#9b8ec4','#4a3f6b'];
+const CC = ['#2c7a4b','#4aab72','#1a5c38','#82c49a','#0f3d24'];
+const PC = ['#1a6b8a','#2d9cbe','#0d4a63','#5bbad5','#0a3347'];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-const toUsd      = (n, ccy) => ccy === 'EUR' ? n * eurUsd : n;
-const usdToEur   = n => n / eurUsd;
-const netDiv     = h => h.div * (1 - h.wht);
-const f          = (n, d=2) => Number(n).toFixed(d);
-const fE         = n => n >= 1000 ? '€' + f(n/1000,1) + 'k' : '€' + f(n,2);  // EUR formatted
-const fD         = n => n >= 1000 ? '$' + f(n/1000,1) + 'k' : '$' + f(n,2);  // USD formatted
-const sym        = ccy => ccy === 'EUR' ? '€' : '$';
-const yc         = y => y < 3 ? 'yl' : y < 5 ? 'ym' : 'yh';
-const nowStr     = () => {
+const toUsd    = (n,ccy) => ccy === 'EUR' ? n * eurUsd : n;
+const toEur    = n => n / eurUsd;
+const netDiv   = h => h.div * (1 - h.wht);
+const f        = (n,d=2) => Number(n).toFixed(d);
+const fE       = n => '€' + (n >= 1000 ? f(n/1000,1)+'k' : f(n,2));
+const fD       = n => '$' + (n >= 1000 ? f(n/1000,1)+'k' : f(n,2));
+const sym      = ccy => ccy === 'EUR' ? '€' : '$';
+const yc       = y => y < 3 ? 'yl' : y < 5 ? 'ym' : 'yh';
+const nowStr   = () => {
   const d = new Date();
   return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
        + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 };
 
 // ── CROWDFUNDING PAYMENT HELPERS ──────────────────────────────────────────────
-// Payment dates: Jan 1, Apr 1, Jul 1, Oct 1 each year
-// Each payment = principal × rate × (days in period / 365)
-// Final payment at maturity = principal × rate × (days from last quarterly date to maturity / 365)
-
 function quarterlyDates(fromYear, toYear) {
-  // Generate all quarterly payment dates (Jan 1, Apr 1, Jul 1, Oct 1) across year range
   const dates = [];
   for (let yr = fromYear; yr <= toYear + 1; yr++) {
-    [0, 3, 6, 9].forEach(mo => dates.push(new Date(yr, mo, 1)));
+    [0,3,6,9].forEach(mo => dates.push(new Date(yr, mo, 1)));
   }
   return dates;
 }
@@ -351,71 +248,53 @@ function remainingYearIncome(c) {
   const maturity = new Date(c.maturity);
   const year     = today.getFullYear();
   if (maturity <= today) return 0;
-
-  // Find the most recent past quarterly date (last payment date)
-  const allDates = quarterlyDates(year - 1, year + 1);
-  let lastPaid = allDates.filter(d => d <= today).pop();
-
-  // Build list of future payment events: quarterly dates + maturity
-  // Each event covers: previous date → this date
-  const futureDates = allDates.filter(d => d > today && d <= maturity);
-  const paymentEvents = [...futureDates, maturity]; // maturity is always the last payment
-
-  // Remove duplicate if maturity coincides exactly with a quarterly date
-  const uniqueEvents = paymentEvents.filter((d, i, arr) =>
-    i === 0 || d.getTime() !== arr[i-1].getTime()
-  );
-
+  const allDates  = quarterlyDates(year - 1, year + 1);
+  const lastPaid  = allDates.filter(d => d <= today).pop();
+  const future    = allDates.filter(d => d > today && d <= maturity);
+  const events    = [...future, maturity];
+  // Remove duplicate if maturity is on a quarterly date
+  const unique = events.filter((d,i,arr) => i === 0 || d.getTime() !== arr[i-1].getTime());
   let total = 0;
-  let periodStart = lastPaid;
-
-  for (const eventDate of uniqueEvents) {
-    // Only count payments that fall within current calendar year
-    if (eventDate.getFullYear() === year || eventDate <= new Date(year, 11, 31)) {
-      if (eventDate.getFullYear() === year) {
-        const days = (eventDate - periodStart) / (1000 * 60 * 60 * 24);
-        total += c.value * c.rate * days / 365;
-      }
+  let start = lastPaid;
+  for (const ev of unique) {
+    if (ev.getFullYear() === year) {
+      const days = (ev - start) / 864e5;
+      total += c.value * c.rate * days / 365;
     }
-    periodStart = eventDate;
+    start = ev;
   }
   return total;
 }
 
 function nextQuarterlyPayment(c) {
-  // Returns { date, amount } for the next upcoming payment
   if (!c.rate || !c.maturity) return null;
   const today    = new Date();
   const maturity = new Date(c.maturity);
   if (maturity <= today) return null;
-
-  const year = today.getFullYear();
+  const year     = today.getFullYear();
   const allDates = quarterlyDates(year - 1, year + 1);
   const lastPaid = allDates.filter(d => d <= today).pop();
-
-  // Next event is either next quarterly date or maturity, whichever is sooner
-  const nextQuarterly = allDates.find(d => d > today);
-  const nextEvent = (!nextQuarterly || maturity < nextQuarterly) ? maturity : nextQuarterly;
-
-  const days = (nextEvent - lastPaid) / (1000 * 60 * 60 * 24);
-  const amount = c.value * c.rate * days / 365;
-  return { date: nextEvent, amount };
+  const nextQ    = allDates.find(d => d > today);
+  const nextEv   = (!nextQ || maturity < nextQ) ? maturity : nextQ;
+  const days     = (nextEv - lastPaid) / 864e5;
+  return { date: nextEv, amount: c.value * c.rate * days / 365 };
 }
 
 function fmtDate(dateStr) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  return new Date(dateStr).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 }
 
 // ── PERSISTENCE ───────────────────────────────────────────────────────────────
 async function loadPortfolio() {
   try {
-    const res = await fetch(`${WORKER_URL}/portfolio`);
+    const res  = await fetch(WORKER_URL + '/portfolio');
     if (!res.ok) return;
     const data = await res.json();
     if (data.stocks && data.stocks.length) stocks = data.stocks;
     if (data.bonds  && data.bonds.length)  bonds  = data.bonds;
     if (data.crowd  && data.crowd.length)  crowd  = data.crowd;
+    if (data.p2p    && data.p2p.length)    p2p    = data.p2p;
     if (data.eurUsd) eurUsd = data.eurUsd;
     if (data.asOf)   asOf   = data.asOf;
   } catch(e) { console.warn('Could not load portfolio:', e); }
@@ -424,25 +303,25 @@ async function loadPortfolio() {
 
 function scheduleSave() {
   if (!isEditor) return;
-  setSaveStatus('saving', 'Saving…');
+  setSaveStatus('saving','Saving…');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(savePortfolio, 1200);
 }
 
 async function savePortfolio() {
   try {
-    const res = await fetch(`${WORKER_URL}/portfolio`, {
+    const res = await fetch(WORKER_URL + '/portfolio', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Editor-Key': window._ek },
-      body: JSON.stringify({ stocks, bonds, crowd, eurUsd, asOf })
+      headers: { 'Content-Type':'application/json', 'X-Editor-Key': window._ek },
+      body: JSON.stringify({ stocks, bonds, crowd, p2p, eurUsd, asOf })
     });
     if (res.ok) {
-      setSaveStatus('saved', 'Saved ✓');
-      setTimeout(() => setSaveStatus('', ''), 2500);
+      setSaveStatus('saved','Saved ✓');
+      setTimeout(() => setSaveStatus('',''), 2500);
     } else {
-      setSaveStatus('error', 'Save failed');
+      setSaveStatus('error','Save failed');
     }
-  } catch(e) { setSaveStatus('error', 'Save failed'); }
+  } catch(e) { setSaveStatus('error','Save failed'); }
 }
 
 function setSaveStatus(cls, msg) {
@@ -457,14 +336,14 @@ async function refreshPrices() {
   const btn = document.getElementById('refreshBtn');
   btn.textContent = 'Refreshing…'; btn.disabled = true;
   try {
-    const usdTickers = stocks.filter(s => s.ccy === 'USD').map(s => s.ticker);
-    const res = await fetch(`${WORKER_URL}/refresh`, {
+    const tickers = stocks.filter(s => s.ccy === 'USD').map(s => s.ticker);
+    const res  = await fetch(WORKER_URL + '/refresh', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tickers: usdTickers })
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({ tickers })
     });
     const data = await res.json();
-    usdTickers.forEach(t => {
+    tickers.forEach(t => {
       if (data[t]) { const s = stocks.find(x => x.ticker === t); if (s) s.price = data[t]; }
     });
     if (data.EURUSD) eurUsd = data.EURUSD;
@@ -486,38 +365,40 @@ function hideLogin() {
   document.getElementById('pwInput').value = '';
 }
 async function submitLogin() {
-  const pw = document.getElementById('pwInput').value;
+  const pw  = document.getElementById('pwInput').value;
   const btn = document.querySelector('.modal-submit');
   btn.textContent = 'Checking…'; btn.disabled = true;
   try {
-    const res = await fetch(`${WORKER_URL}/auth`, {
+    const res = await fetch(WORKER_URL + '/auth', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type':'application/json' },
       body: JSON.stringify({ key: pw })
     });
     if (res.ok) {
       window._ek = pw;
-      isEditor = true;
+      isEditor   = true;
       hideLogin();
       document.getElementById('editorBar').style.display = 'flex';
       document.getElementById('editorBtn').style.display = 'none';
-      document.getElementById('actions').style.display = 'flex';
+      document.getElementById('actions').style.display   = 'flex';
       render();
     } else {
       document.getElementById('loginErr').textContent = 'Incorrect password.';
     }
   } catch(e) {
-    document.getElementById('loginErr').textContent = 'Connection error. Try again.';
+    document.getElementById('loginErr').textContent = 'Connection error.';
   }
   btn.textContent = 'Unlock'; btn.disabled = false;
 }
 async function lockEditor() {
   clearTimeout(saveTimer);
-  if (isEditor) { setSaveStatus('saving', 'Saving…'); await savePortfolio(); }
-  isEditor = false; editing = null; window._ek = null;
+  if (isEditor) { setSaveStatus('saving','Saving…'); await savePortfolio(); }
+  isEditor   = false;
+  editing    = null;
+  window._ek = null;
   document.getElementById('editorBar').style.display = 'none';
   document.getElementById('editorBtn').style.display = '';
-  document.getElementById('actions').style.display = 'none';
+  document.getElementById('actions').style.display   = 'none';
   document.getElementById('addForm').innerHTML = '';
   render();
 }
@@ -534,25 +415,26 @@ function commitEdit(val) {
   if (!editing) return;
   const v = parseFloat(val);
   if (!isNaN(v) && v >= 0) {
-    if (editing.type === 'stock') stocks[editing.idx][editing.field] = v;
-    else if (editing.type === 'bond') bonds[editing.idx][editing.field] = v;
-    else if (editing.type === 'crowd') crowd[editing.idx][editing.field] = v;
+    if      (editing.type === 'stock') stocks[editing.idx][editing.field] = v;
+    else if (editing.type === 'bond')  bonds[editing.idx][editing.field]  = v;
+    else if (editing.type === 'crowd') crowd[editing.idx][editing.field]  = v;
+    else if (editing.type === 'p2p')   p2p[editing.idx][editing.field]    = v;
     scheduleSave();
   }
   editing = null; render();
 }
 function cancelEdit() { editing = null; render(); }
-function editableCell(type, idx, field, rawVal, display) {
-  const isActive = editing && editing.type===type && editing.idx===idx && editing.field===field;
-  if (isActive) {
-    return `<input id="ei" class="edit-input" type="number" value="${rawVal}" step="any"
-      onblur="commitEdit(this.value)"
-      onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape')cancelEdit();" />`;
+function editCell(type, idx, field, raw, display) {
+  const active = editing && editing.type===type && editing.idx===idx && editing.field===field;
+  if (active) {
+    return '<input id="ei" class="edit-input" type="number" value="' + raw + '" step="any"' +
+      ' onblur="commitEdit(this.value)"' +
+      ' onkeydown="if(event.key===\'Enter\')this.blur();if(event.key===\'Escape\')cancelEdit();">';
   }
   const pencil = isEditor
-    ? `<span class="edit-icon" onclick="startEdit('${type}',${idx},'${field}',${rawVal})" title="Edit">✏</span>`
+    ? '<span class="edit-icon" onclick="startEdit(\'' + type + '\',' + idx + ',\'' + field + '\',' + raw + ')" title="Edit">✏</span>'
     : '';
-  return `<span class="editable"><span class="val-primary">${display}</span>${pencil}</span>`;
+  return '<span class="editable"><span class="val-primary">' + display + '</span>' + pencil + '</span>';
 }
 
 // ── TOGGLE ────────────────────────────────────────────────────────────────────
@@ -561,68 +443,57 @@ function toggleIncomeView() {
   render();
 }
 
-// ── ADD FORM ──────────────────────────────────────────────────────────────────
+// ── FORMS ─────────────────────────────────────────────────────────────────────
 function showForm(type) {
   const el = document.getElementById('addForm');
   if (type === 'stock') {
-    el.innerHTML = `
-      <div class="add-form">
-        <h3>Add stock position</h3>
-        <div class="form-grid">
-          <div class="form-field"><label>Ticker</label><input id="f-ticker" placeholder="e.g. AAPL" /></div>
-          <div class="form-field"><label>Company name</label><input id="f-name" placeholder="e.g. Apple Inc." /></div>
-          <div class="form-field"><label>Shares</label><input id="f-shares" type="number" step="any" placeholder="0" /></div>
-          <div class="form-field"><label>Price</label><input id="f-price" type="number" step="any" placeholder="0.00" /></div>
-          <div class="form-field"><label>Annual div/share</label><input id="f-div" type="number" step="any" placeholder="0.00" /></div>
-          <div class="form-field"><label>Currency</label>
-            <select id="f-ccy"><option value="USD">USD</option><option value="EUR">EUR</option></select>
-          </div>
-          <div class="form-field"><label>Withholding tax %</label><input id="f-wht" type="number" step="1" value="15" /></div>
-        </div>
-        <div class="form-actions">
-          <button class="form-submit" onclick="submitStock()">Add to portfolio</button>
-          <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
-        </div>
-      </div>`;
+    el.innerHTML = '<div class="add-form"><h3>Add stock position</h3><div class="form-grid">' +
+      '<div class="form-field"><label>Ticker</label><input id="f-ticker" placeholder="e.g. AAPL"></div>' +
+      '<div class="form-field"><label>Company name</label><input id="f-name" placeholder="e.g. Apple Inc."></div>' +
+      '<div class="form-field"><label>Shares</label><input id="f-shares" type="number" step="any" placeholder="0"></div>' +
+      '<div class="form-field"><label>Price</label><input id="f-price" type="number" step="any" placeholder="0.00"></div>' +
+      '<div class="form-field"><label>Annual div/share</label><input id="f-div" type="number" step="any" placeholder="0.00"></div>' +
+      '<div class="form-field"><label>Currency</label><select id="f-ccy"><option value="USD">USD</option><option value="EUR">EUR</option></select></div>' +
+      '<div class="form-field"><label>Withholding tax %</label><input id="f-wht" type="number" step="1" value="15"></div>' +
+      '</div><div class="form-actions">' +
+      '<button class="form-submit" onclick="submitStock()">Add to portfolio</button>' +
+      '<button class="form-cancel" onclick="document.getElementById(\'addForm\').innerHTML=\'\'">Cancel</button>' +
+      '</div></div>';
+  } else if (type === 'bond') {
+    el.innerHTML = '<div class="add-form"><h3>Add bond</h3><div class="form-grid">' +
+      '<div class="form-field"><label>Name / Issuer</label><input id="f-bname" placeholder="e.g. Eleving"></div>' +
+      '<div class="form-field"><label>Face value</label><input id="f-fv" type="number" step="any" placeholder="0"></div>' +
+      '<div class="form-field"><label>Coupon %</label><input id="f-coupon" type="number" step="0.1" placeholder="0.0"></div>' +
+      '<div class="form-field"><label>Maturity</label><input id="f-mat" placeholder="e.g. Oct 2028"></div>' +
+      '<div class="form-field"><label>Currency</label><select id="f-bccy"><option value="EUR">EUR</option><option value="USD">USD</option></select></div>' +
+      '</div><div class="form-actions">' +
+      '<button class="form-submit" onclick="submitBond()">Add to portfolio</button>' +
+      '<button class="form-cancel" onclick="document.getElementById(\'addForm\').innerHTML=\'\'">Cancel</button>' +
+      '</div></div>';
   } else if (type === 'crowd') {
-    el.innerHTML = `
-      <div class="add-form">
-        <h3>Add crowdfunding position</h3>
-        <div class="form-grid">
-          <div class="form-field"><label>Project / name</label><input id="f-cname" placeholder="e.g. Berlin Apartments" /></div>
-          <div class="form-field"><label>Platform</label><input id="f-platform" placeholder="e.g. Estateguru" /></div>
-          <div class="form-field"><label>Invested value</label><input id="f-cvalue" type="number" step="any" placeholder="0" /></div>
-          <div class="form-field"><label>Annual return %</label><input id="f-crate" type="number" step="0.1" placeholder="e.g. 10.5" /></div>
-          <div class="form-field"><label>Maturity date</label><input id="f-cmat" type="date" /></div>
-          <div class="form-field"><label>Currency</label>
-            <select id="f-cccy"><option value="EUR">EUR</option><option value="USD">USD</option></select>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="form-submit" onclick="submitCrowd()">Add to portfolio</button>
-          <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
-        </div>
-      </div>`;
-  } else {
-    el.innerHTML = `
-      <div class="add-form">
-        <h3>Add bond</h3>
-        <div class="form-grid">
-          <div class="form-field"><label>Name / Issuer</label><input id="f-bname" placeholder="e.g. Eleving" /></div>
-          <div class="form-field"><label>Face value</label><input id="f-fv" type="number" step="any" placeholder="0" /></div>
-          <div class="form-field"><label>Coupon %</label><input id="f-coupon" type="number" step="0.1" placeholder="0.0" /></div>
-          <div class="form-field"><label>Maturity</label><input id="f-mat" placeholder="e.g. Oct 2028" /></div>
-          <div class="form-field"><label>Currency</label>
-            <select id="f-bccy"><option value="EUR">EUR</option><option value="USD">USD</option></select>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="form-submit" onclick="submitBond()">Add to portfolio</button>
-          <button class="form-cancel" onclick="document.getElementById('addForm').innerHTML=''">Cancel</button>
-        </div>
-      </div>`;
+    el.innerHTML = '<div class="add-form"><h3>Add crowdfunding position</h3><div class="form-grid">' +
+      '<div class="form-field"><label>Project / name</label><input id="f-cname" placeholder="e.g. Berlin Apartments"></div>' +
+      '<div class="form-field"><label>Platform</label><input id="f-platform" placeholder="e.g. Estateguru"></div>' +
+      '<div class="form-field"><label>Invested value</label><input id="f-cvalue" type="number" step="any" placeholder="0"></div>' +
+      '<div class="form-field"><label>Annual return %</label><input id="f-crate" type="number" step="0.1" placeholder="e.g. 10.5"></div>' +
+      '<div class="form-field"><label>Maturity date</label><input id="f-cmat" type="date"></div>' +
+      '<div class="form-field"><label>Currency</label><select id="f-cccy"><option value="EUR">EUR</option><option value="USD">USD</option></select></div>' +
+      '</div><div class="form-actions">' +
+      '<button class="form-submit" onclick="submitCrowd()">Add to portfolio</button>' +
+      '<button class="form-cancel" onclick="document.getElementById(\'addForm\').innerHTML=\'\'">Cancel</button>' +
+      '</div></div>';
+  } else if (type === 'p2p') {
+    el.innerHTML = '<div class="add-form"><h3>Add P2P lending platform</h3><div class="form-grid">' +
+      '<div class="form-field"><label>Platform</label><input id="f-p2pname" placeholder="e.g. Mintos"></div>' +
+      '<div class="form-field"><label>Invested value</label><input id="f-p2pvalue" type="number" step="any" placeholder="0"></div>' +
+      '<div class="form-field"><label>Currency</label><select id="f-p2pccy"><option value="EUR">EUR</option><option value="USD">USD</option></select></div>' +
+      '</div><div class="form-actions">' +
+      '<button class="form-submit" onclick="submitP2P()">Add to portfolio</button>' +
+      '<button class="form-cancel" onclick="document.getElementById(\'addForm\').innerHTML=\'\'">Cancel</button>' +
+      '</div></div>';
   }
 }
+
 function submitStock() {
   const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
   const name   = document.getElementById('f-name').value.trim();
@@ -652,232 +523,201 @@ function submitCrowd() {
   const platform = document.getElementById('f-platform').value.trim();
   const value    = parseFloat(document.getElementById('f-cvalue').value);
   const rate     = parseFloat(document.getElementById('f-crate').value) / 100;
-  const maturity = document.getElementById('f-cmat').value; // yyyy-mm-dd
+  const maturity = document.getElementById('f-cmat').value;
   const ccy      = document.getElementById('f-cccy').value;
   if (!name || isNaN(value)) { alert('Please fill in name and invested value.'); return; }
-  crowd.push({ name, platform: platform||'', value, rate: isNaN(rate)?0:rate, maturity: maturity||'', ccy });
+  crowd.push({ name, platform:platform||'', value, rate:isNaN(rate)?0:rate, maturity:maturity||'', ccy });
+  document.getElementById('addForm').innerHTML = '';
+  scheduleSave(); render();
+}
+function submitP2P() {
+  const platform = document.getElementById('f-p2pname').value.trim();
+  const value    = parseFloat(document.getElementById('f-p2pvalue').value);
+  const ccy      = document.getElementById('f-p2pccy').value;
+  if (!platform || isNaN(value)) { alert('Please fill in platform name and invested value.'); return; }
+  p2p.push({ platform, value, ccy });
   document.getElementById('addForm').innerHTML = '';
   scheduleSave(); render();
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render() {
-  // USD totals
+  // Totals in USD
   const svU = stocks.reduce((s,h) => s + toUsd(h.shares * h.price, h.ccy), 0);
   const bvU = bonds.reduce((s,b)  => s + toUsd(b.faceValue, b.ccy), 0);
   const cvU = crowd.reduce((s,c)  => s + toUsd(c.value, c.ccy), 0);
-  const tvU = svU + bvU + cvU;
+  const pvU = p2p.reduce((s,p)    => s + toUsd(p.value, p.ccy), 0);
+  const tvU = svU + bvU + cvU + pvU;
   const siU = stocks.reduce((s,h) => s + toUsd(h.shares * netDiv(h), h.ccy), 0);
   const biU = bonds.reduce((s,b)  => s + toUsd(b.faceValue * b.coupon, b.ccy), 0);
   const tiU = siU + biU;
 
   // EUR equivalents
-  const tvE = usdToEur(tvU);
-  const svE = usdToEur(svU);
-  const bvE = usdToEur(bvU);
-  const cvE = usdToEur(cvU);
-  const tiE = usdToEur(tiU);
-  const siE = usdToEur(siU);
-  const biE = usdToEur(biU);
+  const tvE = toEur(tvU), svE = toEur(svU), bvE = toEur(bvU);
+  const cvE = toEur(cvU), pvE = toEur(pvU);
+  const tiE = toEur(tiU), siE = toEur(siU), biE = toEur(biU);
 
   document.getElementById('asOf').textContent = asOf;
 
-  // 4th card toggle
-  const isStock = incomeView === 'stock';
-  const t4label = isStock ? 'Stock income' : 'Bond income';
-  const t4eur   = isStock ? siE : biE;
-  const t4usd   = isStock ? siU : biU;
-  const t4other = isStock ? `bonds ${fE(biE)} / yr` : `stocks ${fE(siE)} / yr`;
-  const t4hint  = isStock ? '↔ click to see bond income' : '↔ click to see stock income';
+  // Metrics
+  const isStock  = incomeView === 'stock';
+  const t4label  = isStock ? 'Stock income' : 'Bond income';
+  const t4E      = isStock ? siE : biE;
+  const t4U      = isStock ? siU : biU;
+  const t4other  = isStock ? 'bonds ' + fE(biE) + '/yr' : 'stocks ' + fE(siE) + '/yr';
+  const t4hint   = isStock ? '↔ click to see bond income' : '↔ click to see stock income';
 
-  document.getElementById('metrics').innerHTML = `
-    <div class="metric">
-      <div class="metric-label">Portfolio value</div>
-      <div class="metric-value">${fE(tvE)}</div>
-      <div class="metric-sub">${fD(tvU)}</div>
-      <div class="metric-sub2">stocks ${fE(svE)} · bonds ${fE(bvE)}${cvE > 0 ? ' · RE ' + fE(cvE) : ''}</div>
-    </div>
-    <div class="metric accent-card">
-      <div class="metric-label">Net annual income</div>
-      <div class="metric-value">${fE(tiE)}</div>
-      <div class="metric-sub">${fD(tiU)}</div>
-      <div class="metric-sub2">after 15% WHT on dividends</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">Monthly income</div>
-      <div class="metric-value">${fE(tiE/12)}</div>
-      <div class="metric-sub">${fD(tiU/12)}</div>
-      <div class="metric-sub2">${f(tvU>0?tiU/tvU*100:0,2)}% blended yield</div>
-    </div>
-    <div class="metric clickable" onclick="toggleIncomeView()" title="Click to toggle">
-      <div class="metric-label">${t4label}</div>
-      <div class="metric-value">${fE(t4eur)}</div>
-      <div class="metric-sub">${fD(t4usd)}</div>
-      <div class="metric-sub2">${t4other}</div>
-      <div class="toggle-hint">${t4hint}</div>
-    </div>`;
+  let sub2 = 'stocks ' + fE(svE) + ' · bonds ' + fE(bvE);
+  if (cvE > 0) sub2 += ' · RE ' + fE(cvE);
+  if (pvE > 0) sub2 += ' · P2P ' + fE(pvE);
+
+  document.getElementById('metrics').innerHTML =
+    '<div class="metric">' +
+      '<div class="metric-label">Portfolio value</div>' +
+      '<div class="metric-value">' + fE(tvE) + '</div>' +
+      '<div class="metric-sub">' + fD(tvU) + '</div>' +
+      '<div class="metric-sub2">' + sub2 + '</div>' +
+    '</div>' +
+    '<div class="metric accent-card">' +
+      '<div class="metric-label">Net annual income</div>' +
+      '<div class="metric-value">' + fE(tiE) + '</div>' +
+      '<div class="metric-sub">' + fD(tiU) + '</div>' +
+      '<div class="metric-sub2">after 15% WHT on dividends</div>' +
+    '</div>' +
+    '<div class="metric">' +
+      '<div class="metric-label">Monthly income</div>' +
+      '<div class="metric-value">' + fE(tiE/12) + '</div>' +
+      '<div class="metric-sub">' + fD(tiU/12) + '</div>' +
+      '<div class="metric-sub2">' + f(tvU>0?tiU/tvU*100:0,2) + '% blended yield</div>' +
+    '</div>' +
+    '<div class="metric clickable" onclick="toggleIncomeView()" title="Click to toggle">' +
+      '<div class="metric-label">' + t4label + '</div>' +
+      '<div class="metric-value">' + fE(t4E) + '</div>' +
+      '<div class="metric-sub">' + fD(t4U) + '</div>' +
+      '<div class="metric-sub2">' + t4other + '</div>' +
+      '<div class="toggle-hint">' + t4hint + '</div>' +
+    '</div>';
 
   // Allocation bar
   const segs = [
-    ...stocks.map((h,i) => ({ v: toUsd(h.shares*h.price,h.ccy), c: STOCK_COLORS[i%STOCK_COLORS.length] })),
-    ...bonds.map((b,i)  => ({ v: toUsd(b.faceValue,b.ccy),       c: BOND_COLORS[i%BOND_COLORS.length]  })),
-    ...crowd.map((c,i)  => ({ v: toUsd(c.value,c.ccy),            c: CROWD_COLORS[i%CROWD_COLORS.length]})),
+    ...stocks.map((h,i) => ({ v:toUsd(h.shares*h.price,h.ccy), c:SC[i%SC.length] })),
+    ...bonds.map((b,i)  => ({ v:toUsd(b.faceValue,b.ccy),       c:BC[i%BC.length] })),
+    ...crowd.map((c,i)  => ({ v:toUsd(c.value,c.ccy),            c:CC[i%CC.length] })),
+    ...p2p.map((p,i)    => ({ v:toUsd(p.value,p.ccy),            c:PC[i%PC.length] })),
   ];
   document.getElementById('allocBar').innerHTML = segs
-    .map(s => `<div class="alloc-seg" style="width:${f(tvU>0?s.v/tvU*100:0,2)}%;background:${s.c}"></div>`)
+    .map(s => '<div class="alloc-seg" style="width:' + f(tvU>0?s.v/tvU*100:0,2) + '%;background:' + s.c + '"></div>')
     .join('');
 
-  // Stock rows: value primary (EUR), price as subtext below local value
+  // ── STOCKS ──
   const sRows = stocks.map((h,i) => {
     const lv  = h.shares * h.price;
     const uv  = toUsd(lv, h.ccy);
-    const ev  = usdToEur(uv);
+    const ev  = toEur(uv);
     const gi  = h.shares * h.div;
     const ni  = h.shares * netDiv(h);
     const gy  = h.price > 0 ? (h.div / h.price * 100) : 0;
     const pct = tvU > 0 ? (uv / tvU * 100) : 0;
-    const sharesDisplay = h.shares % 1 === 0 ? h.shares : f(h.shares, 4);
-    const rmBtn = isEditor
-      ? `<button class="rm-btn" onclick="stocks.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
-      : '';
-    return `<tr>
-      <td>
-        <div class="ticker" style="color:${STOCK_COLORS[i%STOCK_COLORS.length]}">${h.ticker}<span class="ccy-tag">${h.ccy}</span></div>
-        <div class="co-name">${h.name}</div>
-      </td>
-      <td class="r"><span class="val-primary">${sharesDisplay}</span></td>
-      <td class="r">
-        <span class="val-primary">${fE(ev)}</span>
-        <div class="val-sub">${sym(h.ccy)}${f(lv,0)} · ${f(pct,1)}%</div>
-        <div class="val-sub">${editableCell('stock',i,'price',h.price,'@ '+sym(h.ccy)+f(h.price))}</div>
-      </td>
-      <td class="r"><span class="yield-pill ${yc(gy)}">${f(gy,2)}%</span></td>
-      <td class="r">
-        ${editableCell('stock',i,'div',h.div,sym(h.ccy)+f(gi,2))}
-        <div class="val-sub">net ${sym(h.ccy)}${f(ni,2)}</div>
-      </td>
-      <td class="c">${rmBtn}</td>
-    </tr>`;
+    const sh  = h.shares % 1 === 0 ? h.shares : f(h.shares,4);
+    const rm  = isEditor ? '<button class="rm-btn" onclick="stocks.splice('+i+',1);scheduleSave();render()" title="Remove">×</button>' : '';
+    return '<tr>' +
+      '<td><div class="ticker" style="color:'+SC[i%SC.length]+'">'+h.ticker+'<span class="ccy-tag">'+h.ccy+'</span></div><div class="co-name">'+h.name+'</div></td>' +
+      '<td class="r"><span class="val-primary">'+sh+'</span></td>' +
+      '<td class="r"><span class="val-primary">'+fE(ev)+'</span>' +
+        '<div class="val-sub">'+sym(h.ccy)+f(lv,0)+' · '+f(pct,1)+'%</div>' +
+        '<div class="val-sub">'+editCell('stock',i,'price',h.price,'@ '+sym(h.ccy)+f(h.price))+'</div></td>' +
+      '<td class="r"><span class="yield-pill '+yc(gy)+'">'+f(gy,2)+'%</span></td>' +
+      '<td class="r">'+editCell('stock',i,'div',h.div,sym(h.ccy)+f(gi,2))+'<div class="val-sub">net '+sym(h.ccy)+f(ni,2)+'</div></td>' +
+      '<td class="c">'+rm+'</td>' +
+      '</tr>';
   }).join('');
 
-  document.getElementById('stockSection').innerHTML = `
-    <div class="section-head"><span class="section-label">Stocks</span><div class="section-line"></div></div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>Holding</th>
-          <th class="r">Shares</th>
-          <th class="r">Value (€)${isEditor?' ✏':''}</th>
-          <th class="r">Yield</th>
-          <th class="r">Gross ann. income${isEditor?' ✏':''}</th>
-          <th></th>
-        </tr></thead>
-        <tbody>${sRows}</tbody>
-      </table>
-    </div>`;
+  document.getElementById('stockSection').innerHTML =
+    '<div class="section-head"><span class="section-label">Stocks</span><div class="section-line"></div></div>' +
+    '<div class="tbl-wrap"><table>' +
+    '<thead><tr><th>Holding</th><th class="r">Shares</th><th class="r">Value (€)'+(isEditor?' ✏':'')+'</th><th class="r">Yield</th><th class="r">Gross ann. income'+(isEditor?' ✏':'')+'</th><th></th></tr></thead>' +
+    '<tbody>' + sRows + '</tbody></table></div>';
 
-  // Bond rows
+  // ── BONDS ──
   const bRows = bonds.map((b,i) => {
     const ai  = b.faceValue * b.coupon;
     const uv  = toUsd(b.faceValue, b.ccy);
-    const ev  = usdToEur(uv);
     const pct = tvU > 0 ? (uv / tvU * 100) : 0;
-    const fvEur = b.ccy === 'EUR' ? b.faceValue : ev;
-    const rmBtn = isEditor
-      ? `<button class="rm-btn" onclick="bonds.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
-      : '';
-    return `<tr>
-      <td>
-        <div class="ticker" style="color:${BOND_COLORS[i%BOND_COLORS.length]}">${b.name}<span class="ccy-tag">${b.ccy}</span></div>
-        <div class="co-name">matures ${b.maturity}</div>
-      </td>
-      <td class="r">—</td>
-      <td class="r">
-        ${editableCell('bond',i,'faceValue',b.faceValue,sym(b.ccy)+f(b.faceValue,0))}
-        <div class="val-sub">${fE(fvEur)} · ${f(pct,1)}%</div>
-      </td>
-      <td class="r"><span class="yield-pill yh">${f(b.coupon*100,1)}%</span></td>
-      <td class="r">
-        <span class="val-primary">${sym(b.ccy)}${f(ai,2)}</span>
-        <div class="val-sub">no WHT</div>
-      </td>
-      <td class="c">${rmBtn}</td>
-    </tr>`;
+    const fvE = b.ccy === 'EUR' ? b.faceValue : toEur(uv);
+    const rm  = isEditor ? '<button class="rm-btn" onclick="bonds.splice('+i+',1);scheduleSave();render()" title="Remove">×</button>' : '';
+    return '<tr>' +
+      '<td><div class="ticker" style="color:'+BC[i%BC.length]+'">'+b.name+'<span class="ccy-tag">'+b.ccy+'</span></div><div class="co-name">matures '+b.maturity+'</div></td>' +
+      '<td class="r">—</td>' +
+      '<td class="r">'+editCell('bond',i,'faceValue',b.faceValue,sym(b.ccy)+f(b.faceValue,0))+'<div class="val-sub">'+fE(fvE)+' · '+f(pct,1)+'%</div></td>' +
+      '<td class="r"><span class="yield-pill yh">'+f(b.coupon*100,1)+'%</span></td>' +
+      '<td class="r"><span class="val-primary">'+sym(b.ccy)+f(ai,2)+'</span><div class="val-sub">no WHT</div></td>' +
+      '<td class="c">'+rm+'</td>' +
+      '</tr>';
   }).join('');
 
-  document.getElementById('bondSection').innerHTML = `
-    <div class="section-head"><span class="section-label">Bonds</span><div class="section-line"></div></div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>Holding</th>
-          <th class="r">—</th>
-          <th class="r">Face value${isEditor?' ✏':''}</th>
-          <th class="r">Coupon</th>
-          <th class="r">Annual income</th>
-          <th></th>
-        </tr></thead>
-        <tbody>${bRows}</tbody>
-      </table>
-    </div>`;
+  document.getElementById('bondSection').innerHTML =
+    '<div class="section-head"><span class="section-label">Bonds</span><div class="section-line"></div></div>' +
+    '<div class="tbl-wrap"><table>' +
+    '<thead><tr><th>Holding</th><th class="r">—</th><th class="r">Face value'+(isEditor?' ✏':'')+'</th><th class="r">Coupon</th><th class="r">Annual income</th><th></th></tr></thead>' +
+    '<tbody>' + bRows + '</tbody></table></div>';
 
-  // Crowdfunding rows
-  const cRows = crowd.map((c,i) => {
-    const uv      = toUsd(c.value, c.ccy);
-    const ev      = c.ccy === 'EUR' ? c.value : usdToEur(uv);
-    const pct     = tvU > 0 ? (uv / tvU * 100) : 0;
-    const yearInc = remainingYearIncome(c);
-    const next    = nextQuarterlyPayment(c);
-    const rmBtn = isEditor
-      ? `<button class="rm-btn" onclick="crowd.splice(${i},1);scheduleSave();render()" title="Remove">×</button>`
-      : '';
-    return `<tr>
-      <td>
-        <div class="ticker" style="color:${CROWD_COLORS[i%CROWD_COLORS.length]}">${c.name}<span class="ccy-tag">${c.ccy}</span></div>
-        <div class="co-name">${c.platform || 'Real estate crowdfunding'}</div>
-      </td>
-      <td class="r">
-        ${editableCell('crowd',i,'value',c.value,sym(c.ccy)+f(c.value,0))}
-        <div class="val-sub">${fE(ev)} · ${f(pct,1)}%</div>
-      </td>
-      <td class="r">
-        ${c.rate ? `<span class="yield-pill ${yc(c.rate*100)}">${f(c.rate*100,1)}%</span>` : '—'}
-      </td>
-      <td class="r">
-        <span class="val-primary">${c.maturity ? fmtDate(c.maturity) : '—'}</span>
-      </td>
-      <td class="r">
-        <span class="val-primary">${next ? sym(c.ccy)+f(next.amount,2) : '—'}</span>
-        <div class="val-sub">${next ? fmtDate(next.date.toISOString().split('T')[0]) : ''}</div>
-      </td>
-      <td class="r">
-        <span class="val-primary" style="${yearInc>0?'color:var(--accent)':''}">${yearInc > 0 ? sym(c.ccy)+f(yearInc,2) : '—'}</span>
-        <div class="val-sub">${yearInc > 0 ? 'rest of '+new Date().getFullYear() : ''}</div>
-      </td>
-      <td class="c">${rmBtn}</td>
-    </tr>`;
-  }).join('');
+  // ── CROWDFUNDING ──
+  if (crowd.length > 0 || isEditor) {
+    const yr    = new Date().getFullYear();
+    const cRows = crowd.map((c,i) => {
+      const uv  = toUsd(c.value, c.ccy);
+      const ev  = c.ccy === 'EUR' ? c.value : toEur(uv);
+      const pct = tvU > 0 ? (uv / tvU * 100) : 0;
+      const yi  = remainingYearIncome(c);
+      const nx  = nextQuarterlyPayment(c);
+      const rm  = isEditor ? '<button class="rm-btn" onclick="crowd.splice('+i+',1);scheduleSave();render()" title="Remove">×</button>' : '';
+      return '<tr>' +
+        '<td><div class="ticker" style="color:'+CC[i%CC.length]+'">'+c.name+'<span class="ccy-tag">'+c.ccy+'</span></div><div class="co-name">'+(c.platform||'Real estate crowdfunding')+'</div></td>' +
+        '<td class="r">'+editCell('crowd',i,'value',c.value,sym(c.ccy)+f(c.value,0))+'<div class="val-sub">'+fE(ev)+' · '+f(pct,1)+'%</div></td>' +
+        '<td class="r">'+(c.rate ? '<span class="yield-pill '+yc(c.rate*100)+'">'+f(c.rate*100,1)+'%</span>' : '—')+'</td>' +
+        '<td class="r"><span class="val-primary">'+(c.maturity ? fmtDate(c.maturity) : '—')+'</span></td>' +
+        '<td class="r"><span class="val-primary">'+(nx ? sym(c.ccy)+f(nx.amount,2) : '—')+'</span><div class="val-sub">'+(nx ? fmtDate(nx.date.toISOString().split('T')[0]) : '')+'</div></td>' +
+        '<td class="r"><span class="val-primary" style="'+(yi>0?'color:var(--accent)':'')+'">'+(yi>0?sym(c.ccy)+f(yi,2):'—')+'</span><div class="val-sub">'+(yi>0?'rest of '+yr:'')+'</div></td>' +
+        '<td class="c">'+rm+'</td>' +
+        '</tr>';
+    }).join('');
+    const empty = crowd.length === 0 ? '<tr><td colspan="7" style="color:var(--text3);font-size:12px;padding:12px 10px;">No positions yet — click + Add crowdfunding above</td></tr>' : '';
+    document.getElementById('crowdSection').innerHTML =
+      '<div class="section-head"><span class="section-label">Real Estate Crowdfunding</span><div class="section-line"></div></div>' +
+      '<div class="tbl-wrap"><table>' +
+      '<thead><tr><th>Project</th><th class="r">Invested'+(isEditor?' ✏':'')+'</th><th class="r">Return</th><th class="r">Maturity</th><th class="r">Next payment</th><th class="r">Remaining '+yr+' income</th><th></th></tr></thead>' +
+      '<tbody>' + cRows + empty + '</tbody></table></div>';
+  } else {
+    document.getElementById('crowdSection').innerHTML = '';
+  }
 
-  document.getElementById('crowdSection').innerHTML = crowd.length === 0 && !isEditor ? '' : `
-    <div class="section-head"><span class="section-label">Real Estate Crowdfunding</span><div class="section-line"></div></div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>Project</th>
-          <th class="r">Invested${isEditor?' ✏':''}</th>
-          <th class="r">Return</th>
-          <th class="r">Maturity</th>
-          <th class="r">Next payment</th>
-          <th class="r">Remaining ${new Date().getFullYear()} income</th>
-          <th></th>
-        </tr></thead>
-        <tbody>${cRows}${crowd.length===0?'<tr><td colspan="7" style="color:var(--text3);font-size:12px;padding:12px 10px;">No positions yet — click + Add crowdfunding above</td></tr>':''}</tbody>
-      </table>
-    </div>`;
+  // ── P2P ──
+  if (p2p.length > 0 || isEditor) {
+    const pRows = p2p.map((p,i) => {
+      const uv  = toUsd(p.value, p.ccy);
+      const ev  = p.ccy === 'EUR' ? p.value : toEur(uv);
+      const pct = tvU > 0 ? (uv / tvU * 100) : 0;
+      const rm  = isEditor ? '<button class="rm-btn" onclick="p2p.splice('+i+',1);scheduleSave();render()" title="Remove">×</button>' : '';
+      return '<tr>' +
+        '<td><div class="ticker" style="color:'+PC[i%PC.length]+'">'+p.platform+'<span class="ccy-tag">'+p.ccy+'</span></div><div class="co-name">P2P lending</div></td>' +
+        '<td class="r">'+editCell('p2p',i,'value',p.value,sym(p.ccy)+f(p.value,0))+'<div class="val-sub">'+fE(ev)+' · '+f(pct,1)+'%</div></td>' +
+        '<td class="r"><span class="val-sub">income not tracked</span></td>' +
+        '<td class="c">'+rm+'</td>' +
+        '</tr>';
+    }).join('');
+    const empty = p2p.length === 0 ? '<tr><td colspan="4" style="color:var(--text3);font-size:12px;padding:12px 10px;">No platforms yet</td></tr>' : '';
+    document.getElementById('p2pSection').innerHTML =
+      '<div class="section-head"><span class="section-label">P2P Lending</span><div class="section-line"></div></div>' +
+      '<div class="tbl-wrap"><table>' +
+      '<thead><tr><th>Platform</th><th class="r">Invested'+(isEditor?' ✏':'')+'</th><th class="r">Income</th><th></th></tr></thead>' +
+      '<tbody>' + pRows + empty + '</tbody></table></div>';
+  } else {
+    document.getElementById('p2pSection').innerHTML = '';
+  }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
-asOf = new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+asOf = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 render();
 loadPortfolio();
 </script>
