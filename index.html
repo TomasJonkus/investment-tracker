@@ -125,6 +125,29 @@ tr:hover .edit-icon { opacity:.6; }
 
 .note { font-size:11px; color:var(--text3); margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border); }
 
+/* View tabs */
+.view-tabs { display:flex; gap:4px; margin-bottom:1.25rem; border-bottom:1px solid var(--border); }
+.view-tab { font-size:12px; padding:6px 16px; border:none; background:none; color:var(--text2); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; font-family:'DM Sans',sans-serif; transition:all .15s; border-radius:4px 4px 0 0; }
+.view-tab:hover { color:var(--text); background:var(--surface2); }
+.view-tab.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:500; }
+
+/* Sector allocation */
+.sector-row { display:grid; grid-template-columns:140px 1fr 60px 60px 60px; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+.sector-row:last-child { border-bottom:none; }
+.sector-name { font-size:12px; color:var(--text); }
+.sector-bar-wrap { position:relative; height:18px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+.sector-bar-actual { position:absolute; left:0; top:0; height:100%; border-radius:4px; transition:width .4s; opacity:.85; }
+.sector-bar-desired { position:absolute; top:2px; height:calc(100% - 4px); border-radius:2px; background:transparent; border:1.5px dashed rgba(0,0,0,.2); pointer-events:none; }
+.sector-pct { font-family:'DM Mono',monospace; font-size:11px; text-align:right; color:var(--text); }
+.sector-desired { font-family:'DM Mono',monospace; font-size:11px; text-align:right; color:var(--text3); }
+.sector-diff { font-family:'DM Mono',monospace; font-size:11px; text-align:right; }
+.sector-diff.over  { color:var(--red); }
+.sector-diff.under { color:var(--accent); }
+.sector-diff.ok    { color:var(--text3); }
+.alloc-header { display:grid; grid-template-columns:140px 1fr 60px 60px 60px; gap:10px; padding:0 0 6px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+.alloc-header span { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--text3); font-weight:500; }
+.alloc-header span:not(:first-child) { text-align:right; }
+
 @media(max-width:600px){
   body { padding:1rem .5rem; }
   .metric-value { font-size:1.05rem; }
@@ -154,11 +177,21 @@ tr:hover .edit-icon { opacity:.6; }
 
   <div class="metrics" id="metrics"></div>
   <div class="alloc-bar" id="allocBar"></div>
-  <div id="stockSection"></div>
-  <div id="bondSection"></div>
-  <div id="crowdSection"></div>
-  <div id="p2pSection"></div>
-  <div id="rentalSection"></div>
+  <div class="view-tabs" id="viewTabs">
+    <button class="view-tab active" id="tabHoldings" onclick="switchView('holdings')">Holdings</button>
+    <button class="view-tab" id="tabAllocation" onclick="switchView('allocation')">Sector allocation</button>
+  </div>
+
+  <div id="holdingsView">
+    <div id="stockSection"></div>
+    <div id="bondSection"></div>
+    <div id="crowdSection"></div>
+    <div id="p2pSection"></div>
+    <div id="rentalSection"></div>
+  </div>
+  <div id="allocationView" style="display:none">
+    <div id="sectorSection"></div>
+  </div>
 
   <div class="actions" id="actions" style="display:none">
     <button class="add-btn" onclick="showForm('stock')">+ Add stock</button>
@@ -196,15 +229,25 @@ let isEditor   = false;
 let editing    = null;
 let saveTimer  = null;
 let incomeView = 'stock';
+let currentView = 'holdings';
+
+function switchView(v) {
+  currentView = v;
+  document.getElementById('holdingsView').style.display   = v === 'holdings'   ? '' : 'none';
+  document.getElementById('allocationView').style.display  = v === 'allocation'  ? '' : 'none';
+  document.getElementById('tabHoldings').classList.toggle('active',   v === 'holdings');
+  document.getElementById('tabAllocation').classList.toggle('active',  v === 'allocation');
+  render();
+}
 
 // Default data — overwritten by KV on load
 let stocks = [
-  { ticker:'TGT',   name:'Target Corp',          shares:5,       price:130.18, div:4.56, wht:0.15, ccy:'USD' },
-  { ticker:'WPC',   name:'W.P. Carey',            shares:11,      price:69.25,  div:3.72, wht:0.15, ccy:'USD' },
-  { ticker:'BMY',   name:'Bristol-Myers Squibb',  shares:12,      price:59.79,  div:2.52, wht:0.15, ccy:'USD' },
-  { ticker:'COF',   name:'Capital One Financial', shares:11.2112, price:196.61, div:3.20, wht:0.15, ccy:'USD' },
-  { ticker:'TEL1L', name:'Telia Lietuva',          shares:360,     price:2.26,   div:0.14, wht:0.15, ccy:'EUR' },
-  { ticker:'IGN1L', name:'Ignitis Grupe',          shares:53,      price:21.65,  div:1.37, wht:0.15, ccy:'EUR' },
+  { ticker:'TGT',   name:'Target Corp',          shares:5,       price:130.18, div:4.56, wht:0.15, ccy:'USD', sector:'Consumer Staples' },
+  { ticker:'WPC',   name:'W.P. Carey',            shares:11,      price:69.25,  div:3.72, wht:0.15, ccy:'USD', sector:'REITs' },
+  { ticker:'BMY',   name:'Bristol-Myers Squibb',  shares:12,      price:59.79,  div:2.52, wht:0.15, ccy:'USD', sector:'Health Care' },
+  { ticker:'COF',   name:'Capital One Financial', shares:11.2112, price:196.61, div:3.20, wht:0.15, ccy:'USD', sector:'Financials' },
+  { ticker:'TEL1L', name:'Telia Lietuva',          shares:360,     price:2.26,   div:0.14, wht:0.15, ccy:'EUR', sector:'Communications' },
+  { ticker:'IGN1L', name:'Ignitis Grupe',          shares:53,      price:21.65,  div:1.37, wht:0.15, ccy:'EUR', sector:'Utilities' },
 ];
 let bonds = [
   { name:'Eleving', faceValue:200, coupon:0.13, maturity:'Oct 2028', ccy:'EUR' },
@@ -223,6 +266,39 @@ const BC = ['#7b5ea7','#9b8ec4','#4a3f6b'];
 const CC = ['#2c7a4b','#4aab72','#1a5c38','#82c49a','#0f3d24'];
 const PC = ['#1a6b8a','#2d9cbe','#0d4a63','#5bbad5','#0a3347'];
 const RC = ['#7a4b2c','#be7d2d','#633d0d','#d5a55b','#472b0a'];
+
+const SECTORS = [
+  'Consumer Staples','REITs','Health Care','Information Technology',
+  'Utilities','Financials','Communications','Consumer Discretionary',
+  'Materials','Bonds','Industrials','P2P Lending','Energy',
+  'Real Estate Crowdfunding','Rental Crowdfunding'
+];
+
+// Desired allocation % per sector
+const DESIRED = {
+  'Consumer Staples':14, 'REITs':11, 'Health Care':10, 'Information Technology':10,
+  'Utilities':9, 'Financials':8, 'Communications':7, 'Consumer Discretionary':5,
+  'Materials':5, 'Bonds':5, 'Industrials':5, 'P2P Lending':5,
+  'Energy':3, 'Real Estate Crowdfunding':2, 'Rental Crowdfunding':1
+};
+
+// Known ticker → sector map (used as default when adding new stocks)
+const TICKER_SECTOR = {
+  'TGT':'Consumer Staples','WPC':'REITs','BMY':'Health Care','COF':'Financials',
+  'TEL1L':'Communications','IGN1L':'Utilities','MSFT':'Information Technology',
+  'SBUX':'Consumer Discretionary','UPS':'Industrials','MDLZ':'Consumer Staples',
+  'PLD':'REITs','EMN':'Materials','PFE':'Health Care','VLP1L':'Consumer Staples',
+  'PG':'Consumer Staples','ASML':'Information Technology'
+};
+
+const SECTOR_COLORS = {
+  'Consumer Staples':'#2d6a4f','REITs':'#1a759f','Health Care':'#c0392b',
+  'Information Technology':'#7b5ea7','Utilities':'#d35400','Financials':'#b5843a',
+  'Communications':'#1b7a4a','Consumer Discretionary':'#0d5c7a',
+  'Materials':'#5a4e2d','Bonds':'#9b8ec4','Industrials':'#2c6e7a',
+  'P2P Lending':'#1a6b8a','Energy':'#8a4a1a','Real Estate Crowdfunding':'#4aab72',
+  'Rental Crowdfunding':'#be7d2d'
+};
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const toUsd    = (n,ccy) => ccy === 'EUR' ? n * eurUsd : n;
@@ -455,9 +531,11 @@ function toggleIncomeView() {
 function showForm(type) {
   const el = document.getElementById('addForm');
   if (type === 'stock') {
+    const sectorOptions = SECTORS.map(s => '<option value="'+s+'">'+s+'</option>').join('');
     el.innerHTML = '<div class="add-form"><h3>Add stock position</h3><div class="form-grid">' +
-      '<div class="form-field"><label>Ticker</label><input id="f-ticker" placeholder="e.g. AAPL"></div>' +
+      '<div class="form-field"><label>Ticker</label><input id="f-ticker" placeholder="e.g. AAPL" oninput="autoSector(this.value)"></div>' +
       '<div class="form-field"><label>Company name</label><input id="f-name" placeholder="e.g. Apple Inc."></div>' +
+      '<div class="form-field"><label>Sector</label><select id="f-sector"><option value="">— select —</option>'+sectorOptions+'</select></div>' +
       '<div class="form-field"><label>Shares</label><input id="f-shares" type="number" step="any" placeholder="0"></div>' +
       '<div class="form-field"><label>Price</label><input id="f-price" type="number" step="any" placeholder="0.00"></div>' +
       '<div class="form-field"><label>Annual div/share</label><input id="f-div" type="number" step="any" placeholder="0.00"></div>' +
@@ -522,16 +600,21 @@ function submitRental() {
   document.getElementById('addForm').innerHTML = '';
   scheduleSave(); render();
 }
+function autoSector(ticker) {
+  const s = TICKER_SECTOR[ticker.toUpperCase()];
+  if (s) { const el = document.getElementById('f-sector'); if (el) el.value = s; }
+}
 function submitStock() {
   const ticker = document.getElementById('f-ticker').value.trim().toUpperCase();
   const name   = document.getElementById('f-name').value.trim();
+  const sector = document.getElementById('f-sector').value;
   const shares = parseFloat(document.getElementById('f-shares').value);
   const price  = parseFloat(document.getElementById('f-price').value);
   const div    = parseFloat(document.getElementById('f-div').value);
   const ccy    = document.getElementById('f-ccy').value;
   const wht    = parseFloat(document.getElementById('f-wht').value) / 100;
   if (!ticker || isNaN(shares) || isNaN(div)) { alert('Please fill in ticker, shares and dividend.'); return; }
-  stocks.push({ ticker, name:name||ticker, shares, price:isNaN(price)?0:price, div, wht:isNaN(wht)?0.15:wht, ccy });
+  stocks.push({ ticker, name:name||ticker, sector:sector||'', shares, price:isNaN(price)?0:price, div, wht:isNaN(wht)?0.15:wht, ccy });
   document.getElementById('addForm').innerHTML = '';
   scheduleSave(); render();
 }
@@ -770,6 +853,58 @@ function render() {
       '<tbody>' + rRows + empty + '</tbody></table></div>';
   } else {
     document.getElementById('rentalSection').innerHTML = '';
+  }
+
+  // ── SECTOR ALLOCATION ──
+  if (currentView === 'allocation') {
+    // Build actual values per sector
+    const actual = {};
+    stocks.forEach(h => {
+      const sec = h.sector || 'Unassigned';
+      actual[sec] = (actual[sec] || 0) + toUsd(h.shares * h.price, h.ccy);
+    });
+    // Fixed-category totals
+    actual['Bonds']                  = (actual['Bonds'] || 0) + bvU;
+    actual['P2P Lending']            = (actual['P2P Lending'] || 0) + pvU;
+    actual['Real Estate Crowdfunding']= (actual['Real Estate Crowdfunding'] || 0) + cvU;
+    actual['Rental Crowdfunding']    = (actual['Rental Crowdfunding'] || 0) + rvU;
+
+    // All sectors to show: desired ones + any unassigned
+    const allSectors = [...SECTORS];
+    Object.keys(actual).forEach(s => { if (!allSectors.includes(s)) allSectors.push(s); });
+
+    // Max % for bar scaling
+    const maxPct = Math.max(...allSectors.map(s => Math.max((actual[s]||0)/tvU*100, DESIRED[s]||0)), 1);
+
+    const rows = allSectors.map(s => {
+      const val     = actual[s] || 0;
+      const actPct  = tvU > 0 ? val / tvU * 100 : 0;
+      const desPct  = DESIRED[s] || 0;
+      const diff    = actPct - desPct;
+      const color   = SECTOR_COLORS[s] || '#888';
+      const barW    = f(actPct / maxPct * 100, 1);
+      const desW    = f(desPct / maxPct * 100, 1);
+      const diffCls = Math.abs(diff) < 0.5 ? 'ok' : diff > 0 ? 'over' : 'under';
+      const diffStr = Math.abs(diff) < 0.05 ? '—' : (diff > 0 ? '+' : '') + f(diff,1) + '%';
+      return '<div class="sector-row">' +
+        '<div class="sector-name">'+s+'</div>' +
+        '<div class="sector-bar-wrap">' +
+          '<div class="sector-bar-actual" style="width:'+barW+'%;background:'+color+'"></div>' +
+          '<div class="sector-bar-desired" style="left:0;width:'+desW+'%"></div>' +
+        '</div>' +
+        '<div class="sector-pct">'+f(actPct,1)+'%</div>' +
+        '<div class="sector-desired">'+desPct+'%</div>' +
+        '<div class="sector-diff '+diffCls+'">'+diffStr+'</div>' +
+        '</div>';
+    }).join('');
+
+    document.getElementById('sectorSection').innerHTML =
+      '<div class="alloc-header">' +
+        '<span>Sector</span><span>Allocation</span>' +
+        '<span>Actual</span><span>Target</span><span>Diff</span>' +
+      '</div>' +
+      rows +
+      '<div style="margin-top:1rem;font-size:11px;color:var(--text3)">Solid bar = actual · dashed outline = target</div>';
   }
 }
 
