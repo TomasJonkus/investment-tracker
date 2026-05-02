@@ -180,6 +180,7 @@ tr:hover .edit-icon { opacity:.6; }
   <div class="view-tabs" id="viewTabs">
     <button class="view-tab active" id="tabHoldings" onclick="switchView('holdings')">Holdings</button>
     <button class="view-tab" id="tabAllocation" onclick="switchView('allocation')">Sector allocation</button>
+    <button class="view-tab" id="tabGrowth" onclick="switchView('growth')">Portfolio growth</button>
   </div>
 
   <div id="holdingsView">
@@ -191,6 +192,9 @@ tr:hover .edit-icon { opacity:.6; }
   </div>
   <div id="allocationView" style="display:none">
     <div id="sectorSection"></div>
+  </div>
+  <div id="growthView" style="display:none">
+    <div id="growthSection"></div>
   </div>
 
   <div class="actions" id="actions" style="display:none">
@@ -231,12 +235,33 @@ let saveTimer  = null;
 let incomeView = 'stock';
 let currentView = 'holdings';
 
+const GROWTH_HISTORY = [
+  {d:'Jan 2023',v:2599},{d:'Feb 2023',v:2866},{d:'Mar 2023',v:2776},
+  {d:'Apr 2023',v:2539},{d:'May 2023',v:2656},{d:'Jun 2023',v:2663.57},
+  {d:'Jul 2023',v:3433.98},{d:'Aug 2023',v:3567.53},{d:'Sep 2023',v:3655},
+  {d:'Oct 2023',v:4571},{d:'Nov 2023',v:4764},{d:'Dec 2023',v:5056},
+  {d:'Jan 2024',v:5382},{d:'Feb 2024',v:5310},{d:'Mar 2024',v:6589},
+  {d:'Apr 2024',v:6919},{d:'May 2024',v:7257},{d:'Jun 2024',v:7228},
+  {d:'Jul 2024',v:7458},{d:'Aug 2024',v:8222},{d:'Sep 2024',v:8426},
+  {d:'Oct 2024',v:8717},{d:'Nov 2024',v:9500},{d:'Dec 2024',v:10150},
+  {d:'Jan 2025',v:10344},{d:'Feb 2025',v:11896},{d:'Mar 2025',v:12206},
+  {d:'Apr 2025',v:11429},{d:'May 2025',v:11622},{d:'Jun 2025',v:12050},
+  {d:'Jul 2025',v:12300},{d:'Aug 2025',v:12648},{d:'Sep 2025',v:14798},
+  {d:'Oct 2025',v:15190},{d:'Nov 2025',v:15500},{d:'Dec 2025',v:15829},
+  {d:'Jan 2026',v:15719},{d:'Feb 2026',v:17414},{d:'Mar 2026',v:18000},
+  {d:'Apr 2026',v:18903},{d:'May 2026',v:19031}
+];
+
 function switchView(v) {
   currentView = v;
-  document.getElementById('holdingsView').style.display   = v === 'holdings'   ? '' : 'none';
-  document.getElementById('allocationView').style.display  = v === 'allocation'  ? '' : 'none';
-  document.getElementById('tabHoldings').classList.toggle('active',   v === 'holdings');
-  document.getElementById('tabAllocation').classList.toggle('active',  v === 'allocation');
+  document.getElementById('holdingsView').style.display  = v === 'holdings'   ? '' : 'none';
+  document.getElementById('allocationView').style.display = v === 'allocation'  ? '' : 'none';
+  document.getElementById('growthView').style.display     = v === 'growth'      ? '' : 'none';
+  document.getElementById('tabHoldings').classList.toggle('active',  v === 'holdings');
+  document.getElementById('tabAllocation').classList.toggle('active', v === 'allocation');
+  document.getElementById('tabGrowth').classList.toggle('active',     v === 'growth');
+  // Actions only visible in holdings view
+  document.getElementById('actions').style.display = (v === 'holdings' && isEditor) ? 'flex' : 'none';
   render();
 }
 
@@ -932,9 +957,102 @@ function render() {
       '<div style="margin-top:.75rem;font-size:11px;color:var(--text3)">Solid bar = actual · dashed outline = target · green = within 2.5% · red = outside 2.5%</div>' +
       suggestion;
   }
-}
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+  // ── GROWTH CHART ──
+  if (currentView === 'growth') {
+    const data    = GROWTH_HISTORY;
+    const vals    = data.map(p => p.v);
+    const minV    = Math.min(...vals);
+    const maxV    = Math.max(...vals);
+    const pad     = { t:30, r:20, b:50, l:70 };
+    const W       = 800, H = 340;
+    const iW      = W - pad.l - pad.r;
+    const iH      = H - pad.t - pad.b;
+    const n       = data.length;
+    const rangeV  = maxV - minV || 1;
+    const xScale  = i => pad.l + i / (n-1) * iW;
+    const yScale  = v => pad.t + iH - (v - minV) / rangeV * iH;
+
+    // Y axis gridlines & labels
+    const yTicks  = 5;
+    let gridLines = '', yLabels = '';
+    for (let i = 0; i <= yTicks; i++) {
+      const v  = minV + (rangeV * i / yTicks);
+      const y  = yScale(v);
+      const lbl = v >= 1000 ? '€' + f(v/1000,0) + 'k' : '€' + f(v,0);
+      gridLines += '<line x1="'+pad.l+'" y1="'+f(y,1)+'" x2="'+(W-pad.r)+'" y2="'+f(y,1)+'" stroke="var(--border)" stroke-width="1"/>';
+      yLabels   += '<text x="'+(pad.l-8)+'" y="'+f(y+4,1)+'" text-anchor="end" font-size="10" fill="var(--text3)">'+lbl+'</text>';
+    }
+
+    // X axis labels — show every 6th to avoid crowding
+    let xLabels = '';
+    data.forEach((p,i) => {
+      if (i % 6 === 0 || i === n-1) {
+        const x = xScale(i);
+        xLabels += '<text x="'+f(x,1)+'" y="'+(H-pad.b+16)+'" text-anchor="middle" font-size="10" fill="var(--text3)">'+p.d+'</text>';
+      }
+    });
+
+    // Year separator lines
+    let yearLines = '';
+    data.forEach((p,i) => {
+      if (p.d.startsWith('Jan') && i > 0) {
+        const x = xScale(i);
+        yearLines += '<line x1="'+f(x,1)+'" y1="'+pad.t+'" x2="'+f(x,1)+'" y2="'+(H-pad.b)+'" stroke="var(--border2)" stroke-width="1" stroke-dasharray="4,3"/>';
+        const yr = '20' + p.d.slice(-2);
+        yearLines += '<text x="'+f(x+4,1)+'" y="'+(pad.t+11)+'" font-size="9" fill="var(--text3)">'+yr+'</text>';
+      }
+    });
+
+    // Area fill path
+    let pathD = 'M'+f(xScale(0),1)+','+f(yScale(data[0].v),1);
+    data.forEach((p,i) => { if (i>0) pathD += ' L'+f(xScale(i),1)+','+f(yScale(p.v),1); });
+    const areaD = pathD + ' L'+f(xScale(n-1),1)+','+(H-pad.b)+' L'+f(xScale(0),1)+','+(H-pad.b)+' Z';
+
+    // Dots for each data point
+    let dots = '';
+    data.forEach((p,i) => {
+      const x = xScale(i), y = yScale(p.v);
+      dots += '<circle cx="'+f(x,1)+'" cy="'+f(y,1)+'" r="3" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5">' +
+        '<title>'+p.d+': €'+p.v.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})+'</title>' +
+        '</circle>';
+    });
+
+    // Growth stats
+    const first     = data[0].v;
+    const last      = data[data.length-1].v;
+    const totalGain = last - first;
+    const pctGain   = (totalGain / first * 100);
+    const ytdStart  = data.find(p => p.d.includes('Jan 2026'));
+    const ytdGain   = ytdStart ? ((last - ytdStart.v) / ytdStart.v * 100) : 0;
+    const yoyStart  = data.find(p => p.d === 'May 2025');
+    const yoyGain   = yoyStart ? ((last - yoyStart.v) / yoyStart.v * 100) : 0;
+
+    const statsHtml =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:1.25rem">' +
+        '<div class="metric"><div class="metric-label">All-time high</div><div class="metric-value">'+fE(maxV)+'</div><div class="metric-sub">'+data[vals.indexOf(maxV)].d+'</div></div>' +
+        '<div class="metric"><div class="metric-label">Total growth</div><div class="metric-value" style="color:var(--accent)">+'+f(pctGain,1)+'%</div><div class="metric-sub">'+fE(totalGain)+' since '+data[0].d+'</div></div>' +
+        '<div class="metric"><div class="metric-label">YTD 2026</div><div class="metric-value" style="color:'+(ytdGain>=0?'var(--accent)':'var(--red)')+'">'+( ytdGain>=0?'+':'')+f(ytdGain,1)+'%</div><div class="metric-sub">since Jan 2026</div></div>' +
+        '<div class="metric"><div class="metric-label">12-month</div><div class="metric-value" style="color:'+(yoyGain>=0?'var(--accent)':'var(--red)')+'">'+( yoyGain>=0?'+':'')+f(yoyGain,1)+'%</div><div class="metric-sub">vs May 2025</div></div>' +
+      '</div>';
+
+    const svgHtml =
+      '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">' +
+        '<defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity="0.18"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0.01"/></linearGradient></defs>' +
+        gridLines + yearLines +
+        '<path d="'+areaD+'" fill="url(#areaGrad)"/>' +
+        '<path d="'+pathD+'" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+        xLabels + yLabels + dots +
+      '</svg>';
+
+    document.getElementById('growthSection').innerHTML =
+      statsHtml +
+      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem">' +
+        svgHtml +
+      '</div>' +
+      '<div style="margin-top:.75rem;font-size:11px;color:var(--text3)">Hover over dots to see exact values · Dashed lines = year boundaries</div>';
+  }
+}
 asOf = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 render();
 loadPortfolio();
