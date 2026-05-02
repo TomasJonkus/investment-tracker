@@ -767,7 +767,7 @@ function render() {
         '<div class="val-sub">'+sym(h.ccy)+f(lv,0)+' · '+f(pct,1)+'%</div>' +
         '<div class="val-sub">'+editCell('stock',i,'price',h.price,'@ '+sym(h.ccy)+f(h.price))+'</div></td>' +
       '<td class="r"><span class="yield-pill '+yc(gy)+'">'+f(gy,2)+'%</span></td>' +
-      '<td class="r"><span class="val-primary">'+sym(h.ccy)+f(ni,2)+'</span><div class="val-sub">gross '+sym(h.ccy)+f(gi,2)+'</div></td>' +
+      '<td class="r"><span class="val-primary">'+sym(h.ccy)+f(ni,2)+'</span><div class="val-sub">gross '+sym(h.ccy)+f(gi,2)+'</div><div class="val-sub">'+editCell('stock',i,'div',h.div,'div/share: '+sym(h.ccy)+f(h.div,3))+'</div></td>' +
       '<td class="c">'+rm+'</td>' +
       '</tr>';
   }).join('');
