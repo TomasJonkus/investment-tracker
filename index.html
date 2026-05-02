@@ -1009,12 +1009,24 @@ function render() {
     data.forEach((p,i) => { if (i>0) pathD += ' L'+f(xScale(i),1)+','+f(yScale(p.v),1); });
     const areaD = pathD + ' L'+f(xScale(n-1),1)+','+(H-pad.b)+' L'+f(xScale(0),1)+','+(H-pad.b)+' Z';
 
-    // Dots for each data point
+    // Dots — larger hit area + data attributes for tooltip
     let dots = '';
     data.forEach((p,i) => {
       const x = xScale(i), y = yScale(p.v);
-      dots += '<circle cx="'+f(x,1)+'" cy="'+f(y,1)+'" r="3" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5">' +
-        '<title>'+p.d+': €'+p.v.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})+'</title>' +
+      const prev = i > 0 ? data[i-1].v : null;
+      const chg  = prev ? ((p.v - prev) / prev * 100) : null;
+      const chgStr = chg !== null ? (chg >= 0 ? '+' : '') + f(chg,1) + '%' : '';
+      dots +=
+        '<circle cx="'+f(x,1)+'" cy="'+f(y,1)+'" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"' +
+        ' style="cursor:pointer"' +
+        ' data-d="'+p.d+'" data-v="'+p.v+'" data-chg="'+chgStr+'"' +
+        ' onmouseenter="showChartTip(event,this)" onmouseleave="hideChartTip()">' +
+        '</circle>' +
+        // Invisible larger hit area
+        '<circle cx="'+f(x,1)+'" cy="'+f(y,1)+'" r="10" fill="transparent"' +
+        ' data-d="'+p.d+'" data-v="'+p.v+'" data-chg="'+chgStr+'"' +
+        ' style="cursor:pointer"' +
+        ' onmouseenter="showChartTip(event,this)" onmouseleave="hideChartTip()">' +
         '</circle>';
     });
 
@@ -1037,13 +1049,16 @@ function render() {
       '</div>';
 
     const svgHtml =
-      '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">' +
-        '<defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity="0.18"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0.01"/></linearGradient></defs>' +
-        gridLines + yearLines +
-        '<path d="'+areaD+'" fill="url(#areaGrad)"/>' +
-        '<path d="'+pathD+'" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
-        xLabels + yLabels + dots +
-      '</svg>';
+      '<div style="position:relative">' +
+        '<svg id="growthSvg" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">' +
+          '<defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2d6a4f" stop-opacity="0.18"/><stop offset="100%" stop-color="#2d6a4f" stop-opacity="0.01"/></linearGradient></defs>' +
+          gridLines + yearLines +
+          '<path d="'+areaD+'" fill="url(#areaGrad)"/>' +
+          '<path d="'+pathD+'" fill="none" stroke="#2d6a4f" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+          xLabels + yLabels + dots +
+        '</svg>' +
+        '<div id="chartTip" style="display:none;position:absolute;pointer-events:none;background:#1a1814;color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:10;transform:translate(-50%,-110%)"></div>' +
+      '</div>';
 
     document.getElementById('growthSection').innerHTML =
       statsHtml +
@@ -1052,6 +1067,36 @@ function render() {
       '</div>' +
       '<div style="margin-top:.75rem;font-size:11px;color:var(--text3)">Hover over dots to see exact values · Dashed lines = year boundaries</div>';
   }
+}
+
+function showChartTip(e, el) {
+  const tip  = document.getElementById('chartTip');
+  if (!tip) return;
+  const d    = el.getAttribute('data-d');
+  const v    = parseFloat(el.getAttribute('data-v'));
+  const chg  = el.getAttribute('data-chg');
+  const valStr = '€' + v.toLocaleString('en-GB', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const chgColor = chg.startsWith('+') ? '#4aab72' : chg.startsWith('-') ? '#e07070' : '#aaa';
+  tip.innerHTML =
+    '<div style="font-weight:500;margin-bottom:2px">'+d+'</div>' +
+    '<div style="font-size:14px;font-weight:600">'+valStr+'</div>' +
+    (chg ? '<div style="font-size:11px;color:'+chgColor+'">'+chg+' vs prev month</div>' : '');
+  tip.style.display = 'block';
+  // Position relative to SVG container
+  const svg    = document.getElementById('growthSvg');
+  const svgRect = svg.getBoundingClientRect();
+  const cx     = parseFloat(el.getAttribute('cx'));
+  const cy     = parseFloat(el.getAttribute('cy'));
+  const vb     = svg.viewBox.baseVal;
+  const scaleX = svgRect.width  / vb.width;
+  const scaleY = svgRect.height / vb.height;
+  tip.style.left = (cx * scaleX) + 'px';
+  tip.style.top  = (cy * scaleY) + 'px';
+}
+
+function hideChartTip() {
+  const tip = document.getElementById('chartTip');
+  if (tip) tip.style.display = 'none';
 }
 asOf = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 render();
