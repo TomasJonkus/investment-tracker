@@ -249,7 +249,7 @@ const GROWTH_HISTORY = [
   {d:'Jul 2025',v:12300},{d:'Aug 2025',v:12648},{d:'Sep 2025',v:14798},
   {d:'Oct 2025',v:15190},{d:'Nov 2025',v:15500},{d:'Dec 2025',v:15829},
   {d:'Jan 2026',v:15719},{d:'Feb 2026',v:17414},{d:'Mar 2026',v:18000},
-  {d:'Apr 2026',v:18903},{d:'May 2026',v:19156}
+  {d:'Apr 2026',v:18903},{d:'May 2026',v:19031}
 ];
 
 function switchView(v) {
@@ -767,7 +767,7 @@ function render() {
         '<div class="val-sub">'+sym(h.ccy)+f(lv,0)+' · '+f(pct,1)+'%</div>' +
         '<div class="val-sub">'+editCell('stock',i,'price',h.price,'@ '+sym(h.ccy)+f(h.price))+'</div></td>' +
       '<td class="r"><span class="yield-pill '+yc(gy)+'">'+f(gy,2)+'%</span></td>' +
-      '<td class="r">'+editCell('stock',i,'div',h.div,sym(h.ccy)+f(gi,2))+'<div class="val-sub">net '+sym(h.ccy)+f(ni,2)+'</div></td>' +
+      '<td class="r"><span class="val-primary">'+sym(h.ccy)+f(ni,2)+'</span><div class="val-sub">gross '+sym(h.ccy)+f(gi,2)+'</div></td>' +
       '<td class="c">'+rm+'</td>' +
       '</tr>';
   }).join('');
@@ -775,7 +775,7 @@ function render() {
   document.getElementById('stockSection').innerHTML =
     '<div class="section-head"><span class="section-label">Stocks</span><div class="section-line"></div></div>' +
     '<div class="tbl-wrap"><table>' +
-    '<thead><tr><th>Holding</th><th class="r">Shares</th><th class="r">Value (€)'+(isEditor?' ✏':'')+'</th><th class="r">Yield</th><th class="r">Gross ann. income'+(isEditor?' ✏':'')+'</th><th></th></tr></thead>' +
+    '<thead><tr><th>Holding</th><th class="r">Shares</th><th class="r">Value (€)'+(isEditor?' ✏':'')+'</th><th class="r">Yield</th><th class="r">Net ann. income</th><th></th></tr></thead>' +
     '<tbody>' + sRows + '</tbody></table></div>';
 
   // ── BONDS ──
