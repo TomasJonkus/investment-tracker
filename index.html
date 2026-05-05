@@ -125,6 +125,38 @@ tr:hover .edit-icon { opacity:.6; }
 
 .note { font-size:11px; color:var(--text3); margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border); }
 
+/* History panel */
+.hist-btn { font-size:10px; padding:2px 8px; border:1px solid var(--border); border-radius:20px; background:transparent; color:var(--text3); cursor:pointer; margin-top:3px; display:inline-block; transition:all .15s; }
+.hist-btn:hover { border-color:var(--accent); color:var(--accent); }
+.hist-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.hist-panel { background:var(--surface2); border-top:1px solid var(--border); padding:12px 14px; }
+.hist-summary { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:10px; }
+.hist-stat { font-size:11px; }
+.hist-stat .hs-label { color:var(--text3); margin-bottom:1px; }
+.hist-stat .hs-value { font-family:'DM Mono',monospace; font-size:13px; font-weight:500; color:var(--text); }
+.hist-stat .hs-value.positive { color:var(--accent); }
+.hist-stat .hs-value.negative { color:var(--red); }
+.hist-events { font-size:12px; margin-bottom:10px; }
+.hist-event { display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid var(--border); }
+.hist-event:last-child { border-bottom:none; }
+.hist-event-date { color:var(--text3); font-size:11px; min-width:75px; }
+.hist-event-type { font-size:10px; padding:1px 6px; border-radius:10px; font-weight:500; }
+.hist-type-buy  { background:#e8f5e9; color:#2e7d32; }
+.hist-type-div  { background:var(--gold-bg); color:var(--gold); }
+.hist-event-desc { flex:1; color:var(--text); }
+.hist-event-rm { background:none; border:none; cursor:pointer; color:var(--text3); font-size:13px; padding:0 3px; }
+.hist-event-rm:hover { color:var(--red); }
+.hist-add-btns { display:flex; gap:6px; margin-bottom:8px; }
+.hist-add-btn { font-size:11px; padding:4px 10px; border:1px solid var(--border2); border-radius:20px; background:var(--surface); color:var(--text2); cursor:pointer; }
+.hist-add-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+.hist-form { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:10px; display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-top:6px; }
+.hist-form input { padding:5px 8px; border:1px solid var(--border); border-radius:var(--radius); font-size:12px; font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); }
+.hist-form input:focus { outline:none; border-color:var(--accent); }
+.hist-form-label { font-size:10px; color:var(--text3); margin-bottom:3px; }
+.hist-form-field { display:flex; flex-direction:column; }
+.hist-form-submit { padding:5px 12px; background:var(--accent); color:#fff; border:none; border-radius:20px; font-size:11px; cursor:pointer; }
+.hist-form-cancel { padding:5px 10px; background:none; border:1px solid var(--border); border-radius:20px; font-size:11px; cursor:pointer; color:var(--text2); }
+
 /* View tabs */
 .view-tabs { display:flex; gap:4px; margin-bottom:1.25rem; border-bottom:1px solid var(--border); }
 .view-tab { font-size:12px; padding:6px 16px; border:none; background:none; color:var(--text2); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; font-family:'DM Sans',sans-serif; transition:all .15s; border-radius:4px 4px 0 0; }
@@ -390,6 +422,96 @@ function nextQuarterlyPayment(c) {
 function fmtDate(dateStr) {
   if (!dateStr) return '—';
   return new Date(dateStr).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+
+// ── XIRR ─────────────────────────────────────────────────────────────────────
+// Calculates Internal Rate of Return for irregular cash flows
+// cashFlows: [{date: Date, amount: number}] — negative=outflow, positive=inflow
+function xirr(cashFlows, guess=0.1) {
+  if (!cashFlows || cashFlows.length < 2) return null;
+  const t0 = cashFlows[0].date.getTime();
+  const days = cashFlows.map(cf => (cf.date.getTime() - t0) / 864e5);
+  const npv  = r => cashFlows.reduce((s,cf,i) => s + cf.amount / Math.pow(1 + r, days[i]/365), 0);
+  const dnpv = r => cashFlows.reduce((s,cf,i) => s - cf.amount * days[i]/365 / Math.pow(1 + r, days[i]/365 + 1), 0);
+  let r = guess;
+  for (let iter = 0; iter < 100; iter++) {
+    const n = npv(r), d = dnpv(r);
+    if (Math.abs(d) < 1e-12) break;
+    const r2 = r - n/d;
+    if (Math.abs(r2 - r) < 1e-8) return r2;
+    r = r2;
+    if (r < -0.999) r = -0.999;
+  }
+  return r;
+}
+
+function calcXIRR(h) {
+  if (!h.history || h.history.length === 0) return null;
+  const today = new Date();
+  const flows = [];
+  // Buys = negative cash flow
+  h.history.filter(e => e.type === 'buy').forEach(e => {
+    flows.push({ date: new Date(e.date), amount: -(e.shares * e.price) });
+  });
+  // Dividends = positive cash flow
+  h.history.filter(e => e.type === 'dividend').forEach(e => {
+    flows.push({ date: new Date(e.date), amount: e.amount });
+  });
+  if (flows.length === 0) return null;
+  // Current market value = positive cash flow at today
+  flows.push({ date: today, amount: h.shares * h.price });
+  flows.sort((a,b) => a.date - b.date);
+  try { return xirr(flows); } catch(e) { return null; }
+}
+
+function calcTotalInvested(h) {
+  if (!h.history) return 0;
+  return h.history.filter(e => e.type === 'buy').reduce((s,e) => s + e.shares * e.price, 0);
+}
+function calcTotalDividends(h) {
+  if (!h.history) return 0;
+  return h.history.filter(e => e.type === 'dividend').reduce((s,e) => s + e.amount, 0);
+}
+
+// Track which stock history panels are open
+let openHistory = {};
+function toggleHistory(i) {
+  openHistory[i] = !openHistory[i];
+  render();
+}
+let historyForm = {}; // {idx: 'buy'|'dividend'|null}
+function showHistoryForm(i, type) {
+  historyForm[i] = type;
+  render();
+  setTimeout(() => { const el = document.getElementById('hf-date-'+i); if(el) el.focus(); }, 50);
+}
+function hideHistoryForm(i) { historyForm[i] = null; render(); }
+
+function submitHistoryEvent(i) {
+  const type = historyForm[i];
+  const h    = stocks[i];
+  if (!h.history) h.history = [];
+  if (type === 'buy') {
+    const date   = document.getElementById('hf-date-'+i).value;
+    const shares = parseFloat(document.getElementById('hf-shares-'+i).value);
+    const price  = parseFloat(document.getElementById('hf-price-'+i).value);
+    if (!date || isNaN(shares) || isNaN(price)) { alert('Please fill in all fields.'); return; }
+    h.history.push({ type:'buy', date, shares, price });
+  } else {
+    const date   = document.getElementById('hf-date-'+i).value;
+    const amount = parseFloat(document.getElementById('hf-amount-'+i).value);
+    if (!date || isNaN(amount)) { alert('Please fill in all fields.'); return; }
+    h.history.push({ type:'dividend', date, amount });
+  }
+  h.history.sort((a,b) => new Date(a.date) - new Date(b.date));
+  historyForm[i] = null;
+  scheduleSave();
+  render();
+}
+function deleteHistoryEvent(stockIdx, eventIdx) {
+  stocks[stockIdx].history.splice(eventIdx, 1);
+  scheduleSave();
+  render();
 }
 
 // ── PERSISTENCE ───────────────────────────────────────────────────────────────
@@ -751,31 +873,128 @@ function render() {
 
   // ── STOCKS ──
   const sRows = stocks.map((h,i) => {
-    const lv  = h.shares * h.price;
-    const uv  = toUsd(lv, h.ccy);
-    const ev  = toEur(uv);
-    const gi  = h.shares * h.div;
-    const ni  = h.shares * netDiv(h);
-    const gy  = h.price > 0 ? (h.div / h.price * 100) : 0;
-    const pct = tvU > 0 ? (uv / tvU * 100) : 0;
-    const sh  = h.shares % 1 === 0 ? h.shares : f(h.shares,4);
-    const rm  = isEditor ? '<button class="rm-btn" onclick="stocks.splice('+i+',1);scheduleSave();render()" title="Remove">×</button>' : '';
+    const lv     = h.shares * h.price;
+    const uv     = toUsd(lv, h.ccy);
+    const ev     = toEur(uv);
+    const gi     = h.shares * h.div;
+    const ni     = h.shares * netDiv(h);
+    const gy     = h.price > 0 ? (h.div / h.price * 100) : 0;
+    const pct    = tvU > 0 ? (uv / tvU * 100) : 0;
+    const sh     = h.shares % 1 === 0 ? h.shares : f(h.shares,4);
+    const rm     = isEditor ? '<button class="rm-btn" onclick="stocks.splice('+i+',1);scheduleSave();render()" title="Remove">×</button>' : '';
+    const histOpen = openHistory[i];
+
+    // XIRR & return stats
+    const invested  = calcTotalInvested(h);
+    const divRcvd   = calcTotalDividends(h);
+    const xirrVal   = calcXIRR(h);
+    const totalGain = invested > 0 ? (lv + divRcvd - invested) : null;
+    const totalPct  = invested > 0 ? (totalGain / invested * 100) : null;
+    const hasHistory = h.history && h.history.length > 0;
+
+    // Return cell
+    let returnCell = '<span class="val-sub">no history</span>';
+    if (hasHistory && xirrVal !== null) {
+      const color = xirrVal >= 0 ? 'var(--accent)' : 'var(--red)';
+      returnCell =
+        '<span class="val-primary" style="color:'+color+'">'+(xirrVal>=0?'+':'')+f(xirrVal*100,1)+'%</span>' +
+        '<div class="val-sub">XIRR annualised</div>' +
+        '<div class="val-sub">'+(totalPct>=0?'+':'')+f(totalPct,1)+'% total</div>';
+    }
+
+    // History toggle button
+    const histBtn = '<button class="hist-btn'+(histOpen?' active':'')+'" onclick="toggleHistory('+i+')">'+(histOpen?'▲ hide':'▼ history')+'</button>';
+
+    // History panel
+    let panel = '';
+    if (histOpen) {
+      // Summary stats
+      let summaryHtml = '';
+      if (hasHistory) {
+        const unrealised = lv - invested + divRcvd;
+        summaryHtml =
+          '<div class="hist-summary">' +
+            '<div class="hist-stat"><div class="hs-label">Total invested</div><div class="hs-value">'+sym(h.ccy)+f(invested,2)+'</div></div>' +
+            '<div class="hist-stat"><div class="hs-label">Dividends received</div><div class="hs-value positive">+'+sym(h.ccy)+f(divRcvd,2)+'</div></div>' +
+            '<div class="hist-stat"><div class="hs-label">Current value</div><div class="hs-value">'+sym(h.ccy)+f(lv,2)+'</div></div>' +
+            '<div class="hist-stat"><div class="hs-label">Total gain/loss</div><div class="hs-value '+(totalGain>=0?'positive':'negative')+'">'+(totalGain>=0?'+':'')+sym(h.ccy)+f(totalGain,2)+' ('+(totalPct>=0?'+':'')+f(totalPct,1)+'%)</div></div>' +
+            (xirrVal !== null ? '<div class="hist-stat"><div class="hs-label">XIRR</div><div class="hs-value '+(xirrVal>=0?'positive':'negative')+'">'+(xirrVal>=0?'+':'')+f(xirrVal*100,2)+'% / yr</div></div>' : '') +
+          '</div>';
+      }
+
+      // Events list
+      const evList = (h.history||[]).map((e,j) => {
+        let desc = '';
+        if (e.type === 'buy') desc = sh+' shares @ '+sym(h.ccy)+f(e.price,2)+' = '+sym(h.ccy)+f(e.shares*e.price,2);
+        else desc = 'Received '+sym(h.ccy)+f(e.amount,2);
+        const rmEv = isEditor ? '<button class="hist-event-rm" onclick="deleteHistoryEvent('+i+','+j+')" title="Delete">×</button>' : '';
+        return '<div class="hist-event">' +
+          '<span class="hist-event-date">'+fmtDate(e.date)+'</span>' +
+          '<span class="hist-event-type '+(e.type==='buy'?'hist-type-buy':'hist-type-div')+'">'+(e.type==='buy'?'BUY':'DIV')+'</span>' +
+          '<span class="hist-event-desc">'+desc+'</span>' +
+          rmEv +
+          '</div>';
+      }).join('');
+
+      // Add form
+      let formHtml = '';
+      if (isEditor) {
+        const ft = historyForm[i];
+        const addBtns = '<div class="hist-add-btns">' +
+          '<button class="hist-add-btn" onclick="showHistoryForm('+i+',\'buy\')">+ Buy</button>' +
+          '<button class="hist-add-btn" onclick="showHistoryForm('+i+',\'dividend\')">+ Dividend</button>' +
+          '</div>';
+        if (ft === 'buy') {
+          formHtml = addBtns + '<div class="hist-form">' +
+            '<div class="hist-form-field"><div class="hist-form-label">Date</div><input id="hf-date-'+i+'" type="date"></div>' +
+            '<div class="hist-form-field"><div class="hist-form-label">Shares</div><input id="hf-shares-'+i+'" type="number" step="any" placeholder="0" style="width:70px"></div>' +
+            '<div class="hist-form-field"><div class="hist-form-label">Price ('+sym(h.ccy)+')</div><input id="hf-price-'+i+'" type="number" step="any" placeholder="0.00" style="width:80px"></div>' +
+            '<button class="hist-form-submit" onclick="submitHistoryEvent('+i+')">Add</button>' +
+            '<button class="hist-form-cancel" onclick="hideHistoryForm('+i+')">Cancel</button>' +
+            '</div>';
+        } else if (ft === 'dividend') {
+          formHtml = addBtns + '<div class="hist-form">' +
+            '<div class="hist-form-field"><div class="hist-form-label">Date</div><input id="hf-date-'+i+'" type="date"></div>' +
+            '<div class="hist-form-field"><div class="hist-form-label">Amount ('+sym(h.ccy)+')</div><input id="hf-amount-'+i+'" type="number" step="any" placeholder="0.00" style="width:90px"></div>' +
+            '<button class="hist-form-submit" onclick="submitHistoryEvent('+i+')">Add</button>' +
+            '<button class="hist-form-cancel" onclick="hideHistoryForm('+i+')">Cancel</button>' +
+            '</div>';
+        } else {
+          formHtml = addBtns;
+        }
+      }
+
+      panel = '<tr><td colspan="7" style="padding:0;border-bottom:1px solid var(--border)">' +
+        '<div class="hist-panel">' +
+          summaryHtml +
+          (evList ? '<div class="hist-events">'+evList+'</div>' : '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No events yet.</div>') +
+          formHtml +
+        '</div>' +
+        '</td></tr>';
+    }
+
     return '<tr>' +
-      '<td><div class="ticker" style="color:'+SC[i%SC.length]+'">'+h.ticker+'<span class="ccy-tag">'+h.ccy+'</span></div><div class="co-name">'+h.name+'</div></td>' +
+      '<td><div class="ticker" style="color:'+SC[i%SC.length]+'">'+h.ticker+'<span class="ccy-tag">'+h.ccy+'</span></div>' +
+        '<div class="co-name">'+h.name+'</div>' +
+        histBtn+
+      '</td>' +
       '<td class="r"><span class="val-primary">'+sh+'</span></td>' +
       '<td class="r"><span class="val-primary">'+fE(ev)+'</span>' +
         '<div class="val-sub">'+sym(h.ccy)+f(lv,0)+' · '+f(pct,1)+'%</div>' +
         '<div class="val-sub">'+editCell('stock',i,'price',h.price,'@ '+sym(h.ccy)+f(h.price))+'</div></td>' +
       '<td class="r"><span class="yield-pill '+yc(gy)+'">'+f(gy,2)+'%</span></td>' +
-      '<td class="r"><span class="val-primary">'+sym(h.ccy)+f(ni,2)+'</span><div class="val-sub">gross '+sym(h.ccy)+f(gi,2)+'</div><div class="val-sub">'+editCell('stock',i,'div',h.div,'div/share: '+sym(h.ccy)+f(h.div,3))+'</div></td>' +
+      '<td class="r"><span class="val-primary">'+sym(h.ccy)+f(ni,2)+'</span>' +
+        '<div class="val-sub">gross '+sym(h.ccy)+f(gi,2)+'</div>' +
+        '<div class="val-sub">'+editCell('stock',i,'div',h.div,'div/share: '+sym(h.ccy)+f(h.div,3))+'</div></td>' +
+      '<td class="r">'+returnCell+'</td>' +
       '<td class="c">'+rm+'</td>' +
-      '</tr>';
+      '</tr>' + panel;
   }).join('');
 
   document.getElementById('stockSection').innerHTML =
     '<div class="section-head"><span class="section-label">Stocks</span><div class="section-line"></div></div>' +
     '<div class="tbl-wrap"><table>' +
-    '<thead><tr><th>Holding</th><th class="r">Shares</th><th class="r">Value (€)'+(isEditor?' ✏':'')+'</th><th class="r">Yield</th><th class="r">Net ann. income</th><th></th></tr></thead>' +
+    '<thead><tr><th>Holding</th><th class="r">Shares</th><th class="r">Value (€)'+(isEditor?' ✏':'')+'</th><th class="r">Yield</th><th class="r">Net ann. income</th><th class="r">Return</th><th></th></tr></thead>' +
     '<tbody>' + sRows + '</tbody></table></div>';
 
   // ── BONDS ──
