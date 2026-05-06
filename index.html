@@ -449,9 +449,9 @@ function calcXIRR(h) {
   if (!h.history || h.history.length === 0) return null;
   const today = new Date();
   const flows = [];
-  // Buys = negative cash flow
+  // Buys = negative cash flow (including commission)
   h.history.filter(e => e.type === 'buy').forEach(e => {
-    flows.push({ date: new Date(e.date), amount: -(e.shares * e.price) });
+    flows.push({ date: new Date(e.date), amount: -(e.shares * e.price + (e.commission||0)) });
   });
   // Dividends = positive cash flow
   h.history.filter(e => e.type === 'dividend').forEach(e => {
@@ -466,7 +466,7 @@ function calcXIRR(h) {
 
 function calcTotalInvested(h) {
   if (!h.history) return 0;
-  return h.history.filter(e => e.type === 'buy').reduce((s,e) => s + e.shares * e.price, 0);
+  return h.history.filter(e => e.type === 'buy').reduce((s,e) => s + e.shares * e.price + (e.commission||0), 0);
 }
 function calcTotalDividends(h) {
   if (!h.history) return 0;
@@ -492,11 +492,12 @@ function submitHistoryEvent(i) {
   const h    = stocks[i];
   if (!h.history) h.history = [];
   if (type === 'buy') {
-    const date   = document.getElementById('hf-date-'+i).value;
-    const shares = parseFloat(document.getElementById('hf-shares-'+i).value);
-    const price  = parseFloat(document.getElementById('hf-price-'+i).value);
+    const date       = document.getElementById('hf-date-'+i).value;
+    const shares     = parseFloat(document.getElementById('hf-shares-'+i).value);
+    const price      = parseFloat(document.getElementById('hf-price-'+i).value);
+    const commission = parseFloat(document.getElementById('hf-commission-'+i).value) || 0;
     if (!date || isNaN(shares) || isNaN(price)) { alert('Please fill in all fields.'); return; }
-    h.history.push({ type:'buy', date, shares, price });
+    h.history.push({ type:'buy', date, shares, price, commission });
   } else {
     const date   = document.getElementById('hf-date-'+i).value;
     const amount = parseFloat(document.getElementById('hf-amount-'+i).value);
@@ -925,7 +926,11 @@ function render() {
       // Events list
       const evList = (h.history||[]).map((e,j) => {
         let desc = '';
-        if (e.type === 'buy') desc = sh+' shares @ '+sym(h.ccy)+f(e.price,2)+' = '+sym(h.ccy)+f(e.shares*e.price,2);
+      if (e.type === 'buy') {
+        const cost = e.shares * e.price + (e.commission||0);
+        const commStr = e.commission ? ' + '+sym(h.ccy)+f(e.commission,2)+' commission' : '';
+        desc = f(e.shares,4).replace(/\.?0+$/,'')+' shares @ '+sym(h.ccy)+f(e.price,2)+commStr+' = '+sym(h.ccy)+f(cost,2);
+      }
         else desc = 'Received '+sym(h.ccy)+f(e.amount,2);
         const rmEv = isEditor ? '<button class="hist-event-rm" onclick="deleteHistoryEvent('+i+','+j+')" title="Delete">×</button>' : '';
         return '<div class="hist-event">' +
@@ -949,6 +954,7 @@ function render() {
             '<div class="hist-form-field"><div class="hist-form-label">Date</div><input id="hf-date-'+i+'" type="date"></div>' +
             '<div class="hist-form-field"><div class="hist-form-label">Shares</div><input id="hf-shares-'+i+'" type="number" step="any" placeholder="0" style="width:70px"></div>' +
             '<div class="hist-form-field"><div class="hist-form-label">Price ('+sym(h.ccy)+')</div><input id="hf-price-'+i+'" type="number" step="any" placeholder="0.00" style="width:80px"></div>' +
+            '<div class="hist-form-field"><div class="hist-form-label">Commission ('+sym(h.ccy)+')</div><input id="hf-commission-'+i+'" type="number" step="any" placeholder="0.00" style="width:80px" value="0"></div>' +
             '<button class="hist-form-submit" onclick="submitHistoryEvent('+i+')">Add</button>' +
             '<button class="hist-form-cancel" onclick="hideHistoryForm('+i+')">Cancel</button>' +
             '</div>';
