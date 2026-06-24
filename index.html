@@ -505,12 +505,21 @@ function submitHistoryEvent(i) {
     h.history.push({ type:'dividend', date, amount });
   }
   h.history.sort((a,b) => new Date(a.date) - new Date(b.date));
+  // Recalculate total shares from all buy events
+  if (type === 'buy') {
+    h.shares = h.history.filter(e => e.type === 'buy').reduce((s,e) => s + e.shares, 0);
+  }
   historyForm[i] = null;
   scheduleSave();
   render();
 }
 function deleteHistoryEvent(stockIdx, eventIdx) {
+  const wasB = stocks[stockIdx].history[eventIdx].type === 'buy';
   stocks[stockIdx].history.splice(eventIdx, 1);
+  if (wasB) {
+    const buys = stocks[stockIdx].history.filter(e => e.type === 'buy');
+    if (buys.length > 0) stocks[stockIdx].shares = buys.reduce((s,e) => s + e.shares, 0);
+  }
   scheduleSave();
   render();
 }
