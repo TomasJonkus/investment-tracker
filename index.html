@@ -905,11 +905,10 @@ function render() {
     // Return cell
     let returnCell = '<span class="val-sub">no history</span>';
     if (hasHistory && xirrVal !== null) {
-      const color = xirrVal >= 0 ? 'var(--accent)' : 'var(--red)';
+      const color = totalPct >= 0 ? 'var(--accent)' : 'var(--red)';
       returnCell =
-        '<span class="val-primary" style="color:'+color+'">'+(xirrVal>=0?'+':'')+f(xirrVal*100,1)+'%</span>' +
-        '<div class="val-sub">XIRR annualised</div>' +
-        '<div class="val-sub">'+(totalPct>=0?'+':'')+f(totalPct,1)+'% total</div>';
+        '<span class="val-primary" style="color:'+color+'">'+(totalPct>=0?'+':'')+f(totalPct,1)+'% total</span>' +
+        '<div class="val-sub">'+(xirrVal>=0?'+':'')+f(xirrVal*100,1)+'% XIRR / yr</div>';
     }
 
     // History toggle button
