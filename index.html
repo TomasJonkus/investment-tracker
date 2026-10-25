@@ -267,7 +267,7 @@ let saveTimer  = null;
 let incomeView = 'stock';
 let currentView = 'holdings';
 
-const GROWTH_HISTORY = [
+let GROWTH_HISTORY = [
   {d:'Jan 2023',v:2599},{d:'Feb 2023',v:2866},{d:'Mar 2023',v:2776},
   {d:'Apr 2023',v:2539},{d:'May 2023',v:2656},{d:'Jun 2023',v:2663.57},
   {d:'Jul 2023',v:3433.98},{d:'Aug 2023',v:3567.53},{d:'Sep 2023',v:3655},
@@ -281,9 +281,7 @@ const GROWTH_HISTORY = [
   {d:'Jul 2025',v:12300},{d:'Aug 2025',v:12648},{d:'Sep 2025',v:14798},
   {d:'Oct 2025',v:15190},{d:'Nov 2025',v:15500},{d:'Dec 2025',v:15829},
   {d:'Jan 2026',v:15719},{d:'Feb 2026',v:17414},{d:'Mar 2026',v:18000},
-  {d:'Apr 2026',v:18903},{d:'May 2026',v:19156},{d:'Jun 2026',v:20200},
-  {d:'Jul 2026',v:20700},{d:'Aug 2026',v:21700},{d:'Sep 2026',v:22300},
-  {d:'Oct 2026',v:23500}
+  {d:'Apr 2026',v:18903},{d:'May 2026',v:19156}
 ];
 
 function switchView(v) {
@@ -537,8 +535,9 @@ async function loadPortfolio() {
     if (data.crowd  && data.crowd.length)  crowd  = data.crowd;
     if (data.p2p    && data.p2p.length)    p2p    = data.p2p;
     if (data.rental && data.rental.length) rental = data.rental;
-    if (data.eurUsd) eurUsd = data.eurUsd;
-    if (data.asOf)   asOf   = data.asOf;
+    if (data.eurUsd)       eurUsd        = data.eurUsd;
+    if (data.asOf)         asOf          = data.asOf;
+    if (data.growthHistory && data.growthHistory.length) GROWTH_HISTORY = data.growthHistory;
   } catch(e) { console.warn('Could not load portfolio:', e); }
   render();
 }
@@ -555,7 +554,7 @@ async function savePortfolio() {
     const res = await fetch(WORKER_URL + '/portfolio', {
       method: 'POST',
       headers: { 'Content-Type':'application/json', 'X-Editor-Key': window._ek },
-      body: JSON.stringify({ stocks, bonds, crowd, p2p, rental, eurUsd, asOf })
+      body: JSON.stringify({ stocks, bonds, crowd, p2p, rental, eurUsd, asOf, growthHistory: GROWTH_HISTORY })
     });
     if (res.ok) {
       setSaveStatus('saved','Saved ✓');
@@ -1295,12 +1294,51 @@ function render() {
         '<div id="chartTip" style="display:none;position:absolute;pointer-events:none;background:#1a1814;color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:10;transform:translate(-50%,-110%)"></div>' +
       '</div>';
 
+    // Editor controls
+    let editorHtml = '';
+    if (isEditor) {
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const now = new Date();
+      const defaultMonth = monthNames[now.getMonth()] + ' ' + now.getFullYear();
+
+      const formHtml = growthFormOpen
+        ? '<div class="hist-form" style="margin-top:8px;flex-wrap:wrap">' +
+            '<div class="hist-form-field"><div class="hist-form-label">Month (e.g. Oct 2026)</div>' +
+              '<input id="gf-month" type="text" placeholder="Mon YYYY" value="'+defaultMonth+'" style="width:110px"></div>' +
+            '<div class="hist-form-field"><div class="hist-form-label">Portfolio value (€)</div>' +
+              '<input id="gf-value" type="number" step="any" placeholder="0" style="width:110px"></div>' +
+            '<button class="hist-form-submit" onclick="submitGrowthPoint()">Add</button>' +
+            '<button class="hist-form-cancel" onclick="toggleGrowthForm()">Cancel</button>' +
+          '</div>'
+        : '';
+
+      // Last 6 entries as deletable chips
+      const recentHtml = GROWTH_HISTORY.slice(-6).reverse().map((p, ri) => {
+        const realIdx = GROWTH_HISTORY.length - 1 - ri;
+        return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 8px;font-size:11px;margin:2px">' +
+          p.d + ' · €' + p.v.toLocaleString() +
+          '<button onclick="deleteGrowthPoint('+realIdx+')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:0 0 0 2px" title="Delete">×</button>' +
+          '</span>';
+      }).join('');
+
+      editorHtml =
+        '<div style="margin-top:1rem;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius)">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+            '<span style="font-size:12px;color:var(--text2);font-weight:500">Monthly data points</span>' +
+            '<button class="hist-add-btn" onclick="toggleGrowthForm()">+ Add data point</button>' +
+          '</div>' +
+          '<div style="margin-bottom:4px">'+recentHtml+'</div>' +
+          formHtml +
+        '</div>';
+    }
+
     document.getElementById('growthSection').innerHTML =
       statsHtml +
       '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem">' +
         svgHtml +
       '</div>' +
-      '<div style="margin-top:.75rem;font-size:11px;color:var(--text3)">Hover over dots to see exact values · Dashed lines = year boundaries</div>';
+      '<div style="margin-top:.75rem;font-size:11px;color:var(--text3)">Hover over dots to see exact values · Dashed lines = year boundaries</div>' +
+      editorHtml;
   }
 }
 
@@ -1332,6 +1370,38 @@ function showChartTip(e, el) {
 function hideChartTip() {
   const tip = document.getElementById('chartTip');
   if (tip) tip.style.display = 'none';
+}
+
+let growthFormOpen = false;
+function toggleGrowthForm() { growthFormOpen = !growthFormOpen; renderGrowthTab(); }
+
+function submitGrowthPoint() {
+  const monthEl = document.getElementById('gf-month');
+  const valEl   = document.getElementById('gf-value');
+  if (!monthEl || !valEl) return;
+  const month = monthEl.value.trim();
+  const val   = parseFloat(valEl.value);
+  if (!month || isNaN(val)) { alert('Please enter a valid month and value.'); return; }
+  // Check for duplicate
+  const idx = GROWTH_HISTORY.findIndex(p => p.d === month);
+  if (idx !== -1) {
+    if (!confirm('An entry for "' + month + '" already exists (€' + GROWTH_HISTORY[idx].v.toLocaleString() + '). Replace it?')) return;
+    GROWTH_HISTORY[idx].v = val;
+  } else {
+    GROWTH_HISTORY.push({ d: month, v: val });
+    // Keep sorted by parsing "Mon YYYY"
+    GROWTH_HISTORY.sort((a, b) => new Date('1 ' + a.d) - new Date('1 ' + b.d));
+  }
+  growthFormOpen = false;
+  scheduleSave();
+  renderGrowthTab();
+}
+
+function deleteGrowthPoint(idx) {
+  if (!confirm('Delete "' + GROWTH_HISTORY[idx].d + '"?')) return;
+  GROWTH_HISTORY.splice(idx, 1);
+  scheduleSave();
+  renderGrowthTab();
 }
 asOf = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
 render();
